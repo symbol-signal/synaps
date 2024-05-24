@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Presence Change Event",
+  "description": "This schema describes an event that captures changes in presence detection. It is used to signal when a sensor detects a change, switching its state to either 'on' (presence detected) or 'off' (no presence detected).",
+  "type": "object",
+  "properties": {
+    "sensorId": {
+      "type": "string",
+      "description": "Identifier for the sensor that reported the state change."
+    },
+    "event": {
+      "type": "string",
+      "description": "Identifier of the event."
+    },
+    "eventAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The ISO 8601 formatted date and time marking when the sensor's state changed."
+    },
+    "eventData": {
+      "type": "object",
+      "description": "Data containing details specific to the event.",
+      "properties": {
+        "presence": {
+          "type": "boolean",
+          "description": "True if presence is detected (sensor activated), false if no presence is detected (sensor deactivated)."
+        }
+      },
+      "required": ["presence"]
+    }
+  },
+  "required": ["sensorId", "event", "eventData", "changedAt"]
+}

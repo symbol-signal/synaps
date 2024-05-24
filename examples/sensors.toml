@@ -1,0 +1,18 @@
+# This an example sensor configuration file
+
+[[sensor]]
+# mandatory fields
+type = "sen0395"  # https://wiki.dfrobot.com/mmWave_Radar_Human_Presence_Detection_SKU_SEN0395
+name = "desk"
+port = "/dev/ttyAMA0"
+# optional fields
+read_on_start = true  # Automatically start reading the sensor upon startup (MQTT, presence print, etc.)
+autostart = true  # Automatically start the sensor upon startup (unless already started)
+print_presence = true  # Print presence changes to stdout
+[[sensor.mqtt]]
+broker = "local-rpi"
+topic = "living_room/desk/presence"
+
+[[sensor]]
+type = "amg8833"
+name = "bed"
