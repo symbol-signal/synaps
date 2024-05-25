@@ -25,62 +25,65 @@ class _ApiError(Exception):
         self.code = code
         self.error = error
 
-    def create_response(self):
-        return _resp_err(self.code, self.error)
+    def create_response(self, id=None):
+        return _resp_err(self.code, self.error, id)
 
 
 def _missing_field_error(field) -> _ApiError:
-    return _ApiError(422, f"Missing field {field}")
+    return _ApiError(-32602, f"Missing field: {field}")
 
 
 def _no_sensor_error(sensor) -> _ApiError:
-    return _ApiError(404, f"Sensor {sensor} not found")
+    return _ApiError(-32001, f"Sensor {sensor} not found")
 
 
 def _no_sensors_error() -> _ApiError:
-    return _ApiError(404, f"No sensors found")
+    return _ApiError(-32002, f"No sensors found")
 
 
 def _unknown_command_error(cmd) -> _ApiError:
-    return _ApiError(422, f"Command {cmd} is not recognized")
+    return _ApiError(-32003, f"Command {cmd} is not recognized")
 
 
-def _resp_ok(response):
-    return _resp(200, response)
+def _resp_ok(result, id=None):
+    return _resp(result, id)
 
 
-def _resp(code: int, response):
+def _resp(result, id=None):
     resp = {
-        "response_metadata": {"code": code},
-        "response": response
+        "jsonrpc": "2.0",
+        "result": result,
+        "id": id
     }
     return json.dumps(resp)
 
 
-def _resp_err(code: int, reason: str):
-    if 400 > code >= 600:
-        raise ValueError("Error code must be 4xx or 5xx")
-
+def _resp_err(code: int, message: str, id=None):
     err_resp = {
-        "response_metadata": {"code": code, "error": {"reason": reason}}
+        "jsonrpc": "2.0",
+        "error": {
+            "code": code,
+            "message": message
+        },
+        "id": id
     }
 
     return json.dumps(err_resp)
 
 
-class APIResource(ABC):
+class APIMethod(ABC):
 
     @property
     @abstractmethod
-    def path(self):
-        """Path of the resource including leading '/' character"""
+    def method(self):
+        """Name of the JSON-RPC method"""
 
     @abstractmethod
-    def handle(self, req_body):
+    def handle(self, params):
         """Handle request and optionally return response or raise :class:`__ServerError"""
 
-    def validate(self, req_body):
-        """Raise :class:`__ServerError if request body is invalid"""
+    def validate(self, params):
+        """Raise :class:`__ServerError if params are invalid"""
 
 
 def _get_sensors(sensor_name):
@@ -99,73 +102,73 @@ def _get_sensors(sensor_name):
     return sensors
 
 
-class APISen0395Command(APIResource):
+class APISen0395Command(APIMethod):
 
     @property
-    def path(self):
-        return '/sen0395/command'
+    def method(self):
+        return 'sen0395_command'
 
-    def handle(self, req_body):
-        sensors = _get_sensors(req_body.get('name'))
+    def handle(self, params):
+        sensors = _get_sensors(params.get('name'))
 
-        cmd = Command.from_value(req_body['command'])
+        cmd = Command.from_value(params['command'])
 
         if not cmd:
-            raise _unknown_command_error(req_body['command'])
+            raise _unknown_command_error(params['command'])
 
-        params = req_body.get('parameters') or ()
+        args = params.get('args') or ()
 
         responses = []
         for sensor in sensors:
-            cmd_resp = sensor.send_command(cmd, *params)
+            cmd_resp = sensor.send_command(cmd, *args)
             responses.append(SensorCommandResponse(sensor.sensor_id, cmd_resp).serialize())
 
         return {"sensor_command_responses": responses}
 
-    def validate(self, req_body):
-        if 'command' not in req_body:
+    def validate(self, params):
+        if 'command' not in params:
             raise _missing_field_error('command')
 
 
-class APISen0395Configure(APIResource):
+class APISen0395Configure(APIMethod):
 
     @property
-    def path(self):
-        return '/sen0395/configure'
+    def method(self):
+        return 'sen0395_configure'
 
-    def handle(self, req_body):
-        sensors = _get_sensors(req_body.get('name'))
+    def handle(self, params):
+        sensors = _get_sensors(params.get('name'))
 
-        cmd = Command.from_value(req_body['command'])
+        cmd = Command.from_value(params['command'])
 
         if not cmd:
-            raise _unknown_command_error(req_body['command'])
+            raise _unknown_command_error(params['command'])
 
         if not cmd.is_config:
-            raise _ApiError(422, f"Command {cmd} is not a configuration command")
+            raise _ApiError(-32004, f"Command {cmd} is not a configuration command")
 
-        params = req_body.get('parameters') or ()
+        args = params.get('args') or ()
 
         responses = []
         for sensor in sensors:
-            config_chain_resp = sensor.configure(cmd, *params)
+            config_chain_resp = sensor.configure(cmd, *args)
             responses.append(SensorConfigChainResponse(sensor.sensor_id, config_chain_resp).serialize())
 
         return {"sensor_config_chain_responses": responses}
 
-    def validate(self, req_body):
-        if 'command' not in req_body:
+    def validate(self, params):
+        if 'command' not in params:
             raise _missing_field_error('command')
 
 
-class APISen0395Status(APIResource):
+class APISen0395Status(APIMethod):
 
     @property
-    def path(self):
-        return '/sen0395/status'
+    def method(self):
+        return 'sen0395_status'
 
-    def handle(self, req_body):
-        sensors = _get_sensors(req_body.get('name'))
+    def handle(self, params):
+        sensors = _get_sensors(params.get('name'))
 
         statuses = []
         for sensor in sensors:
@@ -174,49 +177,53 @@ class APISen0395Status(APIResource):
         return SensorStatuses(statuses).serialize()
 
 
-DEFAULT_RESOURCES = (APISen0395Command(), APISen0395Configure(), APISen0395Status())
+DEFAULT_METHODS = (APISen0395Command(), APISen0395Configure(), APISen0395Status())
 
 
 class APIServer(SocketServer):
 
-    def __init__(self, resources=DEFAULT_RESOURCES):
+    def __init__(self, methods=DEFAULT_METHODS):
         super().__init__(lambda: paths.socket_path(_create_socket_name(), create=True), allow_ping=True)
-        self._resources = {resource.path: resource for resource in resources}
+        self._methods = {method.method: method for method in methods}
 
     def handle(self, req):
         try:
             req_body = json.loads(req)
         except JSONDecodeError as e:
             log.warning(f"event=[invalid_json_request_body] length=[{e}]")
-            return _resp_err(400, "invalid_req_body")
+            return _resp_err(-32700, "Parse error")
 
-        if 'request_metadata' not in req_body:
-            return _resp_err(422, "missing_field:request_metadata")
+        if 'jsonrpc' not in req_body or req_body['jsonrpc'] != '2.0':
+            return _resp_err(-32600, "Invalid Request")
+
+        if 'method' not in req_body:
+            return _resp_err(-32600, "Invalid Request")
+
+        method_name = req_body['method']
+        params = req_body.get('params', {})
+        request_id = req_body.get('id')
 
         try:
-            resource = self._resolve_resource(req_body)
-            resource.validate(req_body)
+            method = self._resolve_method(method_name)
+            method.validate(params)
         except _ApiError as e:
-            return e.create_response()
+            return e.create_response(request_id)
 
         try:
-            return _resp_ok(resource.handle(req_body))
+            result = method.handle(params)
+            return _resp_ok(result, request_id)
         except _ApiError as e:
-            return e.create_response()
+            return e.create_response(request_id)
         except Exception:
             log.error("event=[api_handler_error]", exc_info=True)
-            return _resp_err(500, 'Unexpected API handler error')
+            return _resp_err(-32603, "Internal error", request_id)
 
-    def _resolve_resource(self, req_body) -> APIResource:
-        if 'api' not in req_body['request_metadata']:
-            raise _missing_field_error('request_metadata.api')
+    def _resolve_method(self, method_name) -> APIMethod:
+        method = self._methods.get(method_name)
+        if not method:
+            raise _ApiError(-32601, f"Method not found: {method_name}")
 
-        api = req_body['request_metadata']['api']
-        resource = self._resources.get(api)
-        if not resource:
-            raise _ApiError(404, f"{api} API not found")
-
-        return resource
+        return method
 
 
 _api_server = APIServer()

@@ -19,10 +19,16 @@ class APIClient(SocketClient):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
-    def send_request(self, api: str, req_body=None) -> Dict:
-        if not req_body:
-            req_body = {}
-        req_body["request_metadata"] = {"api": api}
+    def send_request(self, method: str, params=None, request_id=None) -> Dict:
+        if not params:
+            params = {}
+
+        req_body = {
+            "jsonrpc": "2.0",
+            "method": method,
+            "params": params,
+            "id": request_id
+        }
 
         server_responses: List[ServerResponse] = self.communicate(json.dumps(req_body))
         if len(server_responses) > 1:
@@ -37,34 +43,35 @@ class APIClient(SocketClient):
             raise ServiceErrorException(service_response.error)
 
         service_response = json.loads(service_response.response)
-        if error := service_response["response_metadata"].get("error"):
-            raise ServiceFailureException(error)
+        if "error" in service_response:
+            raise ServiceFailureException(service_response["error"])
 
         return service_response
 
-    def send_command_sen0395(self, command, params=(), sensor_name=None) -> List[SensorCommandResponse]:
-        service_response = self.send_request(
-            '/sen0395/command', {'name': sensor_name, 'command': command.value, 'parameters': params})
+    def send_command_sen0395(self, command, args=(), sensor_name=None) -> List[SensorCommandResponse]:
+        params = {'name': sensor_name, 'command': command.value, 'args': args}
+        service_response = self.send_request('sen0395_command', params)
 
         responses = []
-        for cmd_resp in service_response["response"]["sensor_command_responses"]:
+        for cmd_resp in service_response["result"]["sensor_command_responses"]:
             responses.append(SensorCommandResponse.deserialize(cmd_resp))
 
         return responses
 
-    def send_configure_sen0395(self, command, params=(), sensor_name=None) -> List[SensorConfigChainResponse]:
-        service_response = self.send_request(
-            '/sen0395/configure', {'name': sensor_name, 'command': command.value, 'parameters': params})
+    def send_configure_sen0395(self, command, args=(), sensor_name=None) -> List[SensorConfigChainResponse]:
+        params = {'name': sensor_name, 'command': command.value, 'args': args}
+        service_response = self.send_request('sen0395_configure', params)
 
         responses = []
-        for config_resp in service_response["response"]["sensor_config_chain_responses"]:
+        for config_resp in service_response["result"]["sensor_config_chain_responses"]:
             responses.append(SensorConfigChainResponse.deserialize(config_resp))
 
         return responses
 
     def send_get_status_sen0395(self, sensor_name=None) -> List[CommandResponse]:
-        service_response = self.send_request('/sen0395/status', {'name': sensor_name})
-        return SensorStatuses.deserialize(service_response["response"])
+        params = {'name': sensor_name}
+        service_response = self.send_request('sen0395_status', params)
+        return SensorStatuses.deserialize(service_response["result"])
 
 
 class ServiceException(Exception):
