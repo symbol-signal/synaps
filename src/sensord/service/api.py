@@ -106,7 +106,7 @@ class APISen0395Command(APIMethod):
 
     @property
     def method(self):
-        return 'sen0395_command'
+        return 'sen0395.command'
 
     def handle(self, params):
         sensors = _get_sensors(params.get('name'))
@@ -134,7 +134,7 @@ class APISen0395Configure(APIMethod):
 
     @property
     def method(self):
-        return 'sen0395_configure'
+        return 'sen0395.configure'
 
     def handle(self, params):
         sensors = _get_sensors(params.get('name'))
@@ -165,7 +165,7 @@ class APISen0395Status(APIMethod):
 
     @property
     def method(self):
-        return 'sen0395_status'
+        return 'sen0395.status'
 
     def handle(self, params):
         sensors = _get_sensors(params.get('name'))

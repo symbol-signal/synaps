@@ -50,7 +50,7 @@ class APIClient(SocketClient):
 
     def send_command_sen0395(self, command, args=(), sensor_name=None) -> List[SensorCommandResponse]:
         params = {'name': sensor_name, 'command': command.value, 'args': args}
-        service_response = self.send_request('sen0395_command', params)
+        service_response = self.send_request('sen0395.command', params)
 
         responses = []
         for cmd_resp in service_response["result"]["sensor_command_responses"]:
@@ -60,7 +60,7 @@ class APIClient(SocketClient):
 
     def send_configure_sen0395(self, command, args=(), sensor_name=None) -> List[SensorConfigChainResponse]:
         params = {'name': sensor_name, 'command': command.value, 'args': args}
-        service_response = self.send_request('sen0395_configure', params)
+        service_response = self.send_request('sen0395.configure', params)
 
         responses = []
         for config_resp in service_response["result"]["sensor_config_chain_responses"]:
@@ -70,7 +70,7 @@ class APIClient(SocketClient):
 
     def send_get_status_sen0395(self, sensor_name=None) -> List[CommandResponse]:
         params = {'name': sensor_name}
-        service_response = self.send_request('sen0395_status', params)
+        service_response = self.send_request('sen0395.status', params)
         return SensorStatuses.deserialize(service_response["result"])
 
 
