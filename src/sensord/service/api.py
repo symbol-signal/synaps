@@ -3,9 +3,9 @@ import logging
 from abc import ABC, abstractmethod
 from json import JSONDecodeError
 
+import sensord.service.sen0395
 from sensation.sen0395 import Command
 from sensord import common
-from sensord.common import sen0395
 from sensord.common.sen0395 import SensorStatuses, SensorConfigChainResponse, SensorCommandResponse
 from sensord.common.socket import SocketServer, SocketServerStoppedAlready
 from sensord.service import paths
@@ -85,13 +85,13 @@ class APIResource(ABC):
 
 def _get_sensors(sensor_name):
     if sensor_name:
-        sensor = sen0395.get_sensor(sensor_name)
+        sensor = sensord.service.sen0395.get_sensor(sensor_name)
         if not sensor:
             raise _no_sensor_error(sensor_name)
 
         return [sensor]
 
-    sensors = sen0395.get_all_sensors()
+    sensors = sensord.service.sen0395.get_all_sensors()
 
     if not sensors:
         raise _no_sensors_error()

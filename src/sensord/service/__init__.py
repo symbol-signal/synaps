@@ -3,8 +3,8 @@ import signal
 
 import tomli
 
-from sensord.common import sen0395
-from sensord.service import api, mqtt, paths
+from sensation.common import SensorType
+from sensord.service import api, mqtt, paths, sen0395
 from sensord.service.err import UnknownSensorType, MissingConfigurationField, AlreadyRegistered, InvalidConfiguration
 from sensord.service.paths import ConfigFileNotFoundError
 
@@ -77,7 +77,7 @@ def register_sensors(sensors):
 
 
 def register_sensor(config):
-    if config["type"] == 'sen0395':
+    if config["type"] == SensorType.SEN0395.value:
         sen0395.register(**config)
         return
 
