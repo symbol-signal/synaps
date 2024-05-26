@@ -35,7 +35,7 @@ class SensorStatuses:
         table.add_column("Name")
         table.add_column("Port")
         table.add_column("Timeout")
-        table.add_column("Reading")
+        table.add_column("Enabled")
         table.add_column("Scanning")
 
         for status in self.statuses:

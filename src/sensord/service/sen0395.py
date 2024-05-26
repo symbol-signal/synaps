@@ -52,7 +52,7 @@ def _init_sensor(config):
             handler.observers.append(
                 lambda presence: mqtt.send_presence_changed_event(conf['broker'], conf['topic'], s.sensor_id, presence))
 
-    if config.get('read_on_start'):
+    if config.get('enabled'):
         s.start_reading()
 
     if config.get('autostart'):

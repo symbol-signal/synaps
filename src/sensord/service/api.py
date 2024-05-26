@@ -6,6 +6,7 @@ from json import JSONDecodeError
 import sensord.service.sen0395
 from sensation.sen0395 import Command
 from sensord import common
+from sensord.common import str_to_bool
 from sensord.common.sen0395 import SensorStatuses, SensorConfigChainResponse, SensorCommandResponse
 from sensord.common.socket import SocketServer, SocketServerStoppedAlready
 from sensord.service import paths
@@ -177,7 +178,32 @@ class APISen0395Status(APIMethod):
         return SensorStatuses(statuses).serialize()
 
 
-DEFAULT_METHODS = (APISen0395Command(), APISen0395Configure(), APISen0395Status())
+class APISen0395Reading(APIMethod):
+
+    @property
+    def method(self):
+        return 'sen0395.reading'
+
+    def handle(self, params):
+        sensors = _get_sensors(params.get('name'))
+
+        if 'enabled' not in params:
+            raise _missing_field_error('enabled')
+
+        enabled = str_to_bool(params['enabled'])
+        statuses = []
+        for sensor in sensors:
+            if enabled:
+                sensor.start_reading()
+            else:
+                sensor.stop_reading()
+
+            statuses.append(sensor.status())
+
+        return SensorStatuses(statuses).serialize()
+
+
+DEFAULT_METHODS = (APISen0395Command(), APISen0395Configure(), APISen0395Status(), APISen0395Reading())
 
 
 class APIServer(SocketServer):
