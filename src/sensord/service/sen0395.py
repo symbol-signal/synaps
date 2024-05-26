@@ -45,7 +45,7 @@ def _init_sensor(config):
 
     if config.get('print_presence'):
         handler.observers.append(
-            lambda presence: log.info(f"[presence_change] sensor=[{s.sensor_id}] presence=[{presence}]"))
+            lambda presence: log.debug(f"[presence_change] sensor=[{s.sensor_id}] presence=[{presence}]"))
 
     if mqtt_brokers := config.get("mqtt"):
         for conf in mqtt_brokers:

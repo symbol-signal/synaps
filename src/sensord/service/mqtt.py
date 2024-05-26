@@ -52,7 +52,7 @@ def on_disconnect(_, userdata, rc):
 
 
 def on_publish(_, userdata, mid):
-    logger.info(f"[mqtt_message_published] broker=[{userdata['name']}] message_id=[{mid}]")
+    logger.debug(f"[mqtt_message_published] broker=[{userdata['name']}] message_id=[{mid}]")
 
 
 def register(**config):

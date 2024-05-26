@@ -69,7 +69,7 @@ class SocketServer(abc.ABC):
         self._serve()
 
     def _serve(self):
-        log.debug('event=[server_started]')
+        log.debug('[server_started]')
         server = self._server  # This prevents None access error when the server is closed
         while not self._stopped:
             datagram, client_address = server.recvfrom(RECV_BUFFER_LENGTH)
@@ -90,14 +90,14 @@ class SocketServer(abc.ABC):
                         server.sendto(encoded, client_address)
                     except OSError as e:
                         if e.errno == 111:
-                            log.warning(f"event=[client_response_timeout] detail=[{e}]")
+                            log.warning(f"[client_response_timeout] detail=[{e}]")
                             continue
                         if e.errno == 90:
-                            log.error(f"event=[server_response_payload_too_large] length=[{len(encoded)}]")
+                            log.error(f"[server_response_payload_too_large] length=[{len(encoded)}]")
                         raise e
                 else:
-                    log.warning('event=[missing_client_address]')
-        log.debug('event=[server_stopped]')
+                    log.warning('[missing_client_address]')
+        log.debug('[server_stopped]')
 
     @abc.abstractmethod
     def handle(self, req_body):
@@ -188,11 +188,11 @@ class SocketClient:
                         datagram = self._client.recv(RECV_BUFFER_LENGTH)
                         resp = ServerResponse(server_id, datagram.decode())
                 except TimeoutError:
-                    log.warning('event=[socket_timeout] socket=[{}]'.format(server_file))
+                    log.warning('[socket_timeout] socket=[{}]'.format(server_file))
                     self.timed_out_servers.append(server_id)
                     resp = ServerResponse(server_id, None, Error.TIMEOUT)
                 except ConnectionRefusedError:  # TODO what about other errors?
-                    log.warning('event=[stale_socket] socket=[{}]'.format(server_file))
+                    log.warning('[stale_socket] socket=[{}]'.format(server_file))
                     self.stale_sockets.append(server_file)
                     skip = True  # Ignore this one and continue with another one
                     break

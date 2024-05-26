@@ -7,6 +7,7 @@ from sensord.common import expand_user
 from sensord.service import paths
 
 sensord_logger = logging.getLogger('sensord')
+sensord_logger.setLevel(logging.DEBUG)
 
 STDOUT_FORMATTER = logging.Formatter('%(message)s')
 DEF_FORMATTER = logging.Formatter('%(asctime)s - %(levelname)-5s - %(name)s - %(message)s')

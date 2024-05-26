@@ -73,6 +73,11 @@ class APIClient(SocketClient):
         service_response = self.send_request('sen0395.status', params)
         return SensorStatuses.deserialize(service_response["result"])
 
+    def send_reading_enabled_sen0395(self, enabled, sensor_name=None) -> List[CommandResponse]:
+        params = {'name': sensor_name, 'enabled': enabled}
+        service_response = self.send_request('sen0395.reading', params)
+        return SensorStatuses.deserialize(service_response["result"])
+
 
 class ServiceException(Exception):
     pass

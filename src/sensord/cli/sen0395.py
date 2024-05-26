@@ -1,4 +1,5 @@
 # sen0395_commands.py
+from functools import wraps
 
 import rich_click as click
 from rich.console import Console
@@ -65,28 +66,43 @@ def detrange(para_s, para_e, parb_s, parb_e, parc_s, parc_e, pard_s, pard_e):
 
     send_command(Command.DETECTION_RANGE_CONFIG, [-1] + params)
 
+def service_call(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        console = Console()
+        with APIClient() as client:
+            try:
+                return func(client, console, *args, **kwargs)
+            except ServiceException as e:
+                console.print(f"[bold red]Service Error: [/bold red]{e}")
+    return wrapper
 
 @sen0395.command()
-def status():
-    console = Console()
-    with APIClient() as c:
-        try:
-            statuses = c.send_get_status_sen0395()
-            console.print(statuses)
-        except ServiceException as e:
-            console.print(f"[bold red]Service Error: [/bold red]{e}")
+@service_call
+def status(client: APIClient, console: Console):
+    statuses = client.send_get_status_sen0395()
+    console.print(statuses)
 
 
-def send_command(cmd, params=None, sensor_name=None):
-    console = Console()
-    with APIClient() as c:
-        try:
-            if cmd.is_config:
-                responses = c.send_configure_sen0395(cmd, params, sensor_name)
-                for cfg_chain_resp in responses:
-                    console.print(cfg_chain_resp)
-            else:
-                responses = c.send_command_sen0395(cmd, params, sensor_name)
-                console.print(sensor_command_responses_table(*responses))
-        except ServiceException as e:
-            console.print(f"[bold red]Service Error: [/bold red]{e}")
+@sen0395.command()
+@service_call
+def enable(client: APIClient, console: Console):
+    statuses = client.send_reading_enabled_sen0395(True)
+    console.print(statuses)
+
+@sen0395.command()
+@service_call
+def disable(client: APIClient, console: Console):
+    statuses = client.send_reading_enabled_sen0395(False)
+    console.print(statuses)
+
+
+@service_call
+def send_command(client: APIClient, console: Console, cmd, params=None, sensor_name=None):
+    if cmd.is_config:
+        responses = client.send_configure_sen0395(cmd, params, sensor_name)
+        for cfg_chain_resp in responses:
+            console.print(cfg_chain_resp)
+    else:
+        responses = client.send_command_sen0395(cmd, params, sensor_name)
+        console.print(sensor_command_responses_table(*responses))

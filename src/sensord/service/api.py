@@ -6,7 +6,6 @@ from json import JSONDecodeError
 import sensord.service.sen0395
 from sensation.sen0395 import Command
 from sensord import common
-from sensord.common import str_to_bool
 from sensord.common.sen0395 import SensorStatuses, SensorConfigChainResponse, SensorCommandResponse
 from sensord.common.socket import SocketServer, SocketServerStoppedAlready
 from sensord.service import paths
@@ -190,7 +189,7 @@ class APISen0395Reading(APIMethod):
         if 'enabled' not in params:
             raise _missing_field_error('enabled')
 
-        enabled = str_to_bool(params['enabled'])
+        enabled = params['enabled']
         statuses = []
         for sensor in sensors:
             if enabled:
