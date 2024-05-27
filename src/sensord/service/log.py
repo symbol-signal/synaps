@@ -9,6 +9,9 @@ from sensord.service import paths
 sensord_logger = logging.getLogger('sensord')
 sensord_logger.setLevel(logging.DEBUG)
 
+sensation_logger = logging.getLogger('sensation')
+sensation_logger.setLevel(logging.DEBUG)
+
 STDOUT_FORMATTER = logging.Formatter('%(message)s')
 DEF_FORMATTER = logging.Formatter('%(asctime)s - %(levelname)-5s - %(name)s - %(message)s')
 
@@ -19,6 +22,7 @@ FILE_HANDLER_NAME = 'file-handler'
 def configure(enabled, log_file_level='info', log_file_path=None):
     if not enabled:
         sensord_logger.disabled = True
+        sensation_logger.disabled = True
         return
 
     setup_console('DEBUG')
@@ -29,6 +33,7 @@ def configure(enabled, log_file_level='info', log_file_path=None):
         setup_file(level, log_file_path)
         if level < sensord_logger.getEffectiveLevel():
             sensord_logger.setLevel(level)
+            sensation_logger.setLevel(level)
 
 
 def is_disabled():
@@ -52,17 +57,21 @@ def setup_file(level, file):
     register_handler(file_handler)
 
 
-def _find_handler(name):
-    for handler in sensord_logger.handlers:
+def register_handler(handler):
+    register_handler_for_logger(sensord_logger, handler)
+    register_handler_for_logger(sensation_logger, handler)
+
+
+def _find_handler(logger, name):
+    for handler in logger.handlers:
         if handler.name == name:
             return handler
 
     return None
 
-
-def register_handler(handler):
-    previous = _find_handler(handler.name)
+def register_handler_for_logger(logger, handler):
+    previous = _find_handler(logger, handler.name)
     if previous:
-        sensord_logger.removeHandler(previous)
+        logger.removeHandler(previous)
 
-    sensord_logger.addHandler(handler)
+    logger.addHandler(handler)

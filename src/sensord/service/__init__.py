@@ -24,11 +24,12 @@ def missing_mqtt_config_field(field, config):
 
 
 def run():
+    logger.info('[service_started]')
     try:
         init_mqtt()
         init_sensors()
     except KeyboardInterrupt:
-        logger.info('[exit] detail=[Initialization stage interrupted by user]')
+        logger.info('[service_exit] detail=[Initialization stage interrupted by user]')
         unregister_sensors()
         unregister_mqtt()
         return
@@ -115,7 +116,7 @@ def unregister_mqtt():
 
 
 def shutdown(_, __):
-    logger.info("[exit] detail=[Shutdown signal received]")
+    logger.info("[service_exit] detail=[Shutdown signal received]")
     api.stop()
     unregister_sensors()
     unregister_mqtt()

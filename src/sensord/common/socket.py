@@ -69,7 +69,7 @@ class SocketServer(abc.ABC):
         self._serve()
 
     def _serve(self):
-        log.debug('[server_started]')
+        log.info('[server_started]')
         server = self._server  # This prevents None access error when the server is closed
         while not self._stopped:
             datagram, client_address = server.recvfrom(RECV_BUFFER_LENGTH)
@@ -97,7 +97,7 @@ class SocketServer(abc.ABC):
                         raise e
                 else:
                     log.warning('[missing_client_address]')
-        log.debug('[server_stopped]')
+        log.info('[server_stopped]')
 
     @abc.abstractmethod
     def handle(self, req_body):
