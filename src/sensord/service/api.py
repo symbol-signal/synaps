@@ -193,6 +193,7 @@ class APISen0395Reading(APIMethod):
         statuses = []
         for sensor in sensors:
             if enabled:
+                sensor.clear_buffer()
                 sensor.start_reading()
             else:
                 sensor.stop_reading()
