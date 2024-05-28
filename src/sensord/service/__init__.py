@@ -121,7 +121,8 @@ def unregister_mqtt():
 
 
 def shutdown(_, __):
-    logger.info("[service_exit] detail=[Shutdown signal received]")
+    logger.info("[exit_signal_received]")
     api.stop()
     unregister_sensors()
     unregister_mqtt()
+    logger.info("[service_exited] reason=[signal]")

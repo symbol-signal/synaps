@@ -32,8 +32,8 @@ class SocketServerStoppedAlready(SocketServerException):
 
 class SocketServer(abc.ABC):
 
-    def __init__(self, socket_path_provider, *, allow_ping=False):
-        self._socket_path_provider = socket_path_provider
+    def __init__(self, socket_path, *, allow_ping=False):
+        self._socket_path = socket_path
         self._allow_ping = allow_ping
         self._server: socket = None
         self._serving_thread = Thread(target=self._serve, name='Thread-ApiServer')
@@ -44,16 +44,11 @@ class SocketServer(abc.ABC):
         if self._stopped:
             raise SocketServerStoppedAlready
 
-        try:
-            socket_path = self._socket_path_provider()
-        except FileNotFoundError as e:
-            raise SocketCreationException(e.filename) from e
-
         self._server = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         try:
-            self._server.bind(str(socket_path))
+            self._server.bind(str(self._socket_path))
         except PermissionError as e:
-            raise SocketCreationException(socket_path) from e
+            raise SocketCreationException(self._socket_path) from e
 
     def start(self):
         with self._lock:

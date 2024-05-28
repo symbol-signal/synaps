@@ -7,6 +7,7 @@ from rich.console import Console
 from sensation.sen0395 import range_segments, Command
 from sensord.cli.client import APIClient, ServiceException
 from sensord.common.sen0395 import sensor_command_responses_table
+from sensord.service import paths
 
 
 @click.group()
@@ -70,7 +71,12 @@ def service_call(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         console = Console()
-        with APIClient() as client:
+        api_socket_path = paths.search_api_socket()
+        if not api_socket_path:
+            console.print("[bold red]Sensord service is not running:[/bold red] Start the service by `sensord` command")
+            raise SystemExit(1)
+
+        with APIClient(api_socket_path) as client:
             try:
                 return func(client, console, *args, **kwargs)
             except ServiceException as e:

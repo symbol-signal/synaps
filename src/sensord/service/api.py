@@ -208,8 +208,8 @@ DEFAULT_METHODS = (APISen0395Command(), APISen0395Configure(), APISen0395Status(
 
 class APIServer(SocketServer):
 
-    def __init__(self, methods=DEFAULT_METHODS):
-        super().__init__(lambda: paths.socket_path(_create_socket_name(), create=True), allow_ping=True)
+    def __init__(self, socket_path, methods=DEFAULT_METHODS):
+        super().__init__(socket_path)
         self._methods = {method.method: method for method in methods}
 
     def handle(self, req):
@@ -252,7 +252,7 @@ class APIServer(SocketServer):
         return method
 
 
-_api_server = APIServer()
+_api_server = APIServer(paths.api_socket_path())
 
 
 def start():

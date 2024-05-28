@@ -4,14 +4,12 @@ from typing import List, Dict
 from sensation.sen0395 import CommandResponse
 from sensord.common.sen0395 import SensorStatuses, SensorCommandResponse, SensorConfigChainResponse
 from sensord.common.socket import SocketClient, ServerResponse
-from sensord.service import paths
-from sensord.service.api import API_FILE_EXTENSION
 
 
 class APIClient(SocketClient):
 
-    def __init__(self):
-        super().__init__(paths.socket_files_provider(API_FILE_EXTENSION), bidirectional=True)
+    def __init__(self, socket_path):
+        super().__init__(lambda: [socket_path], bidirectional=True)
 
     def __enter__(self):
         return self

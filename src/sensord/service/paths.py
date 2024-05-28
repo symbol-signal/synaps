@@ -13,10 +13,11 @@ import getpass
 import os
 import re
 from pathlib import Path
-from typing import Generator, List, Callable
+from typing import List, Optional
 
 from sensord.service.err import SensordException
 
+API_SOCKET = 'sensord.sock'
 CONFIG_DIR = 'sensord'
 SENSORS_CONFIG_FILE = 'sensors.toml'
 MQTT_CONFIG_FILE = 'mqtt.toml'
@@ -131,56 +132,52 @@ def log_file_path(create: bool) -> Path:
     return path / 'sensord' / 'sensord.log'
 
 
-def socket_dir(create: bool) -> Path:
+def socket_dir() -> Path:
     """
-    1. Root user: /run/sensord
-    2. Non-root user: /tmp/taro_${USER} (An alternative may be: ${HOME}/.cache/sensord)
-
-    TODO taro_${USER} should be unique to prevent denial of service attempts:
-
-    :param create: create path directories if not exist
+    1. Root user: /run
+    2. Non-root user: /tmp (An alternative may be: ${HOME}/.cache/sensord)
     :return: directory path for unix domain sockets
-    :raises FileNotFoundError: when path cannot be created (only if create == True)
     """
 
     if _is_root():
-        path = Path('/run/sensord')
+        path = Path('/run')
     else:
-        path = Path(f"/tmp/sensord_{getpass.getuser()}")
-
-    if create:
-        path.mkdir(mode=0o700, exist_ok=True)
+        path = Path(f"/tmp")
 
     return path
 
 
-def socket_path(socket_name: str, create: bool) -> Path:
+def socket_path(socket_name: str) -> Path:
     """
-    1. Root user: /run/sensord/{socket-name}
-    2. Non-root user: /tmp/taro_${USER}/{socket-name} (An alternative may be: ${HOME}/.cache/sensord/{socket-name})
+    1. Root user: /run/{socket-name}
+    2. Non-root user: /tmp/{socket-name} (An alternative may be: ${HOME}/.cache/sensord/{socket-name})
 
     :param socket_name: socket file name
-    :param create: create path directories if not exist
     :return: unix domain socket path
-    :raises FileNotFoundError: when path cannot be created (only if create == True)
     """
 
-    return socket_dir(create) / socket_name
+    return socket_dir() / socket_name
 
+def api_socket_path():
+    return socket_path(API_SOCKET)
 
-def socket_files(file_extension: str) -> Generator[Path, None, None]:
-    s_dir = socket_dir(False)
-    if s_dir.exists():
-        for entry in s_dir.iterdir():
-            if entry.is_socket() and file_extension == entry.suffix:
-                yield entry
+def search_api_socket() -> Optional[Path]:
+    """
+    Search for the API socket file in the following directories:
+    1. Root user: /run/{socket-name}
+    2. Non-root user: /tmp/{socket-name}
 
+    :return: socket file path if found, None otherwise
+    """
+    root_path = Path('/run') / API_SOCKET
+    if root_path.exists():
+        return root_path
 
-def socket_files_provider(file_extension: str) -> Callable[[], Generator[Path, None, None]]:
-    def provider():
-        return socket_files(file_extension)
+    non_root_path = Path('/tmp') / API_SOCKET
+    if non_root_path.exists():
+        return non_root_path
 
-    return provider
+    return None
 
 
 def lock_dir(create: bool) -> Path:
