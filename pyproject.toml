@@ -11,11 +11,10 @@ classifiers = ["License :: OSI Approved :: MIT License"]
 requires-python = ">=3.9"
 dynamic = ["version", "description"]
 dependencies = [
-#    "sensation @ git+ssh://git@github.com/symbol-signal/sensation",
+    "sensation>=0.1.2",
     "click>=8.1.7",
-    "tomli>=2.0.1",
     "rich-click>=1.7.3",
-    "pyserial>=3.5",
+    "tomli>=2.0.1",
     "paho-mqtt>=1.6.1",
 ]
 
@@ -25,8 +24,8 @@ name = "sensord"
 pythonpath = "src"
 
 [project.scripts]
-sensord = "sensord.service:main"
-sensorctl = "sensord.cli:main"
+sensord = "sensord.service:cli"
+sensorctl = "sensord.cli:cli"
 
 [project.urls]
 Home = "https://github.com/StanSvec/dfrobot-sen0395"

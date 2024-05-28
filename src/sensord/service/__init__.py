@@ -1,15 +1,20 @@
 import logging
 import signal
 
+import rich_click as click
 import tomli
 
 from sensation.common import SensorType
-from sensord.service import api, mqtt, paths, sen0395
+from sensord.service import api, mqtt, paths, sen0395, log
 from sensord.service.err import UnknownSensorType, MissingConfigurationField, AlreadyRegistered, InvalidConfiguration
 from sensord.service.paths import ConfigFileNotFoundError
 
 logger = logging.getLogger(__name__)
 
+@click.command()
+def cli():
+    log.configure(True)
+    run()
 
 def missing_config_field(entity, field, config):
     logger.warning(f"[invalid_{entity}] reason=[missing_configuration_field] field=[{field}] config=[{config}]")
