@@ -5,6 +5,7 @@ import rich_click as click
 import tomli
 
 from sensation.common import SensorType
+from sensord.common.socket import SocketBindException
 from sensord.service import api, mqtt, paths, sen0395, log
 from sensord.service.err import UnknownSensorType, MissingConfigurationField, AlreadyRegistered, InvalidConfiguration
 from sensord.service.paths import ConfigFileNotFoundError
@@ -31,6 +32,12 @@ def missing_mqtt_config_field(field, config):
 def run():
     logger.info('[service_started]')
     try:
+        api.start()
+    except SocketBindException as e:
+        logger.error(f"[socket_bind_error] reason=[{e}] check=[Is the service already running?]")
+        exit(1)
+
+    try:
         init_mqtt()
         init_sensors()
     except KeyboardInterrupt:
@@ -41,7 +48,6 @@ def run():
 
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
-    api.start()
 
 
 def init_sensors():

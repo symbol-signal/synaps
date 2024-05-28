@@ -19,11 +19,20 @@ class SocketServerException(Exception):
     pass
 
 
-class SocketCreationException(SocketServerException):
+class SocketBindException(SocketServerException):
 
     def __init__(self, socket_path):
         self.socket_path = socket_path
         super().__init__(f"Unable to create socket: {socket_path}")
+
+
+class PayloadTooLarge(SocketServerException):
+    """
+    This exception is thrown when the operating system rejects sent datagram due to its size.
+    """
+
+    def __init__(self, payload_size):
+        super().__init__("Datagram payload is too large: " + str(payload_size))
 
 
 class SocketServerStoppedAlready(SocketServerException):
@@ -47,8 +56,9 @@ class SocketServer(abc.ABC):
         self._server = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         try:
             self._server.bind(str(self._socket_path))
-        except PermissionError as e:
-            raise SocketCreationException(self._socket_path) from e
+        except (PermissionError, OSError) as e:
+            raise SocketBindException(self._socket_path) from e
+
 
     def start(self):
         with self._lock:
@@ -219,12 +229,3 @@ class SocketClient:
     def close(self):
         self._client.shutdown(socket.SHUT_RDWR)
         self._client.close()
-
-
-class PayloadTooLarge(Exception):
-    """
-    This exception is thrown when the operating system rejects sent datagram due to its size.
-    """
-
-    def __init__(self, payload_size):
-        super().__init__("Datagram payload is too large: " + str(payload_size))
