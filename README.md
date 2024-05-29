@@ -33,6 +33,8 @@ run it as a systemd service by a dedicated user.
 
 ## Sensord service
 ### Sensors Configuration
-The service requires `sensors.toml` config file to be available on XDG config path in `sensord` directory.
-- For given user it is usually: `~/.config/sensord`
-- To access the config globally: `/etc/xdg/sensord`
+The service requires a `sensors.toml` config file to be available on the XDG config path in the `sensord` directory.
+- For given user: `~/.config/sensord` or `$XDG_CONFIG_HOME/sensord`
+- For all users: `/etc/xdg/sensord` or `/etc/sensord`
+
+See [example configuration file](examples/sensors.toml).
