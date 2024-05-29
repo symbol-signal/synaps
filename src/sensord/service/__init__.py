@@ -7,7 +7,8 @@ import tomli
 from sensation.common import SensorType
 from sensord.common.socket import SocketBindException
 from sensord.service import api, mqtt, paths, sen0395, log
-from sensord.service.err import UnknownSensorType, MissingConfigurationField, AlreadyRegistered, InvalidConfiguration
+from sensord.service.err import UnknownSensorType, MissingConfigurationField, AlreadyRegistered, InvalidConfiguration, \
+    ServiceAlreadyRunning
 from sensord.service.paths import ConfigFileNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,10 @@ def run():
         api.start()
     except SocketBindException as e:
         logger.error(f"[socket_bind_error] reason=[{e}] check=[Is the service already running?]")
+        print(f"You can try removing `/tmp/{paths.API_SOCKET}` if you are absolutely sure the service is not running.")
+        exit(1)
+    except ServiceAlreadyRunning:
+        logger.warning(f"[service_is_already_running] result=[exiting..]")
         exit(1)
 
     try:

@@ -1,6 +1,8 @@
 class SensordException(Exception):
     pass
 
+class ServiceAlreadyRunning(SensordException):
+    pass
 
 class InvalidConfiguration(SensordException):
     pass

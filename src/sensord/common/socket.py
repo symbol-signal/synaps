@@ -219,9 +219,9 @@ class SocketClient:
                 break
         return responses
 
-    def ping(self):
+    def ping(self) -> PingResult:
         responses = self.communicate('ping')
-        active = [resp.server_id for resp in responses]
+        active = [resp.server_id for resp in responses if resp]
         timed_out = list(self.timed_out_servers)
         stale = list(self.stale_sockets)
         return PingResult(active, timed_out, stale)

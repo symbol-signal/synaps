@@ -1,14 +1,17 @@
 import json
 import logging
+import os
 from abc import ABC, abstractmethod
 from json import JSONDecodeError
 
 import sensord.service.sen0395
 from sensation.sen0395 import Command
 from sensord import common
+from sensord.cli.client import APIClient
 from sensord.common.sen0395 import SensorStatuses, SensorConfigChainResponse, SensorCommandResponse
 from sensord.common.socket import SocketServer, SocketServerStoppedAlready
 from sensord.service import paths
+from sensord.service.err import ServiceAlreadyRunning
 
 log = logging.getLogger(__name__)
 
@@ -209,7 +212,7 @@ DEFAULT_METHODS = (APISen0395Command(), APISen0395Configure(), APISen0395Status(
 class APIServer(SocketServer):
 
     def __init__(self, socket_path, methods=DEFAULT_METHODS):
-        super().__init__(socket_path)
+        super().__init__(socket_path, allow_ping=True)  # Allow ping for stale socket check
         self._methods = {method.method: method for method in methods}
 
     def handle(self, req):
@@ -256,6 +259,18 @@ _api_server = APIServer(paths.api_socket_path())
 
 
 def start():
+    socket_path = paths.api_socket_path()
+
+    with APIClient(socket_path) as client:
+        ping_result = client.ping()
+
+    if ping_result.active_servers or ping_result.timed_out_servers:
+        raise ServiceAlreadyRunning
+
+    if ping_result.stale_sockets and os.path.exists(socket_path):
+        os.remove(socket_path)
+        log.warning("[stale_socket_removed]")
+
     try:
         _api_server.start()
     except SocketServerStoppedAlready:
