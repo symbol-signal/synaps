@@ -42,6 +42,7 @@ def run():
         init_sensors()
     except KeyboardInterrupt:
         logger.info('[service_exit] detail=[Initialization stage interrupted by user]')
+        api.stop()
         unregister_sensors()
         unregister_mqtt()
         return
@@ -55,7 +56,7 @@ def init_sensors():
         config_file = paths.lookup_sensors_config_file()
     except ConfigFileNotFoundError as e:
         logger.warning(f"[no_sensors_config_file] detail=[{e}]")
-        exit(1)
+        return
 
     with open(config_file, 'rb') as f:
         config = tomli.load(f)
