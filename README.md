@@ -1,14 +1,14 @@
 # Sensord
 The distribution package consists of two main components:
 
-**Sensor Service:**
+**Sensor Service**
 - Executable: `sensord`
 - Manages IoT devices and sensors.
 - Runs as a background process.
 - Handles communication and data processing for connected sensors.
 - Sends sensor data and events to external systems according to configured endpoints (MQTT, etc.)
 
-**Sensor Control CLI:**
+**Sensor Control CLI**
 - Executable: `sensorctl`
 - Provides a command-line tool for controlling and interacting with the Sensor Service.
 - Allows users to start, stop, configure, and monitor sensors through the command line.
@@ -39,9 +39,13 @@ according to the [XDG specification](https://specifications.freedesktop.org/base
 - For a given user: `~/.config/sensord` or `$XDG_CONFIG_HOME/sensord`
 - For all users: `/etc/xdg/sensord` or `/etc/sensord`
 
-### Sensors Configuration
+### Sensors
+#### Configuration
 All sensors are configured in the configuration file `sensors.toml` which must be placed in the configuration directory. 
 See the [example configuration file](examples/sensors.toml).
+
+##### SEN0395
+Configuration fields to be added here...
 
 ### MQTT
 #### Broker Configuration
