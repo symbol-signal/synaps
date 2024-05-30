@@ -6,6 +6,7 @@ The distribution package consists of two main components:
 - Manages IoT devices and sensors.
 - Runs as a background process.
 - Handles communication and data processing for connected sensors.
+- Sends sensor data and events to external systems according to configured endpoints (MQTT, etc.)
 
 **Sensor Control CLI:**
 - Executable: `sensorctl`
@@ -34,10 +35,10 @@ run it as a systemd service by a dedicated user.
 ## Sensord service
 ### Configuration Directory
 All service configuration files must be placed in the `sensord` directory located in one of the configuration paths 
-according to the XDG specification:
+according to the [XDG specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html):
 - For a given user: `~/.config/sensord` or `$XDG_CONFIG_HOME/sensord`
 - For all users: `/etc/xdg/sensord` or `/etc/sensord`
-- 
+
 ### Sensors Configuration
 All sensors are configured in the configuration file `sensors.toml` which must be placed in the configuration directory. 
 See the [example configuration file](examples/sensors.toml).
