@@ -24,7 +24,7 @@ def get_broker(broker):
 
 def send_presence_changed_event(broker: str, topic: str, sensor_id: SensorId, presence: bool):
     payload = {
-        "sensorId": f"{sensor_id.sensor_type}/{sensor_id.sensor_name}",
+        "sensorId": f"{sensor_id.sensor_type.value}/{sensor_id.sensor_name}",
         "event": "presence_change",
         "eventAt": datetime.now(timezone.utc).isoformat(),
         "eventData": {"presence": presence},

@@ -32,9 +32,46 @@ This makes `sensord` available for all users in the system, which can be conveni
 run it as a systemd service by a dedicated user.
 
 ## Sensord service
-### Sensors Configuration
-The service requires a `sensors.toml` config file to be available on the XDG config path in the `sensord` directory.
-- For given user: `~/.config/sensord` or `$XDG_CONFIG_HOME/sensord`
+### Configuration Directory
+All service configuration files must be placed in the `sensord` directory located in one of the configuration paths 
+according to the XDG specification:
+- For a given user: `~/.config/sensord` or `$XDG_CONFIG_HOME/sensord`
 - For all users: `/etc/xdg/sensord` or `/etc/sensord`
+- 
+### Sensors Configuration
+All sensors are configured in the configuration file `sensors.toml` which must be placed in the configuration directory. 
+See the [example configuration file](examples/sensors.toml).
 
-See [example configuration file](examples/sensors.toml).
+### MQTT
+#### Broker Configuration
+Presence change events of a sensor can be sent as an MQTT message to an MQTT broker. For this, a broker must first be
+defined in the `mqtt.toml` configuration file. See the [example configuration file](examples/mqtt.toml).
+
+#### Payload
+The schema of the MQTT message payload is defined in the [presence-mqtt-schema.json](doc/presence-mqtt-schema.json) file.
+##### Example
+```json
+{
+  "sensorId": "sen0395/desk",
+  "event": "presence_change",
+  "eventAt": "2024-05-30T06:25:13.929544+00:00",
+  "eventData": {
+    "presence": false
+  }
+}
+```
+
+#### Sensor Configuration
+A sensor must explicitly define an MQTT broker for the notification to be sent. 
+Multiple brokers can be defined to send notifications to different MQTT brokers:
+```toml
+[[sensor]]
+# Sensor configuration is here
+[[sensor.mqtt]]
+broker = "local-rpi"  # Broker name defined as `broker.name` in the `mqtt.toml` file
+topic = "living_room/desk/presence"  # Topic where the notification events are sent
+
+[[sensor.mqtt]]
+broker = "cloud-broker"  # Another broker name defined in the `mqtt.toml` file
+topic = "sensors/living_room/desk/presence"  # Topic on the second broker
+```

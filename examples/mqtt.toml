@@ -2,6 +2,6 @@
 
 # Configuration for the first MQTT broker
 [[broker]]
-name = "Local"
+name = "local-rpi"
 host = "localhost"
 port = 1883  # Default MQTT port
