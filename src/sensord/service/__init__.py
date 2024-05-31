@@ -13,10 +13,23 @@ from sensord.service.paths import ConfigFileNotFoundError
 
 logger = logging.getLogger(__name__)
 
+
 @click.command()
-def cli():
-    log.configure(True)
-    run()
+@click.option('--log-file-level', type=click.Choice(['debug', 'info', 'warning', 'error', 'critical']), default='info',
+              help='Set the log level for file logging')
+def cli(log_file_level):
+    log.configure(True, log_file_level=log_file_level)
+
+    try:
+        run()
+    except KeyboardInterrupt:
+        logger.info('[service_exit] detail=[Initialization stage interrupted by user]')
+        shutdown()
+    except Exception:
+        logger.exception("[unexpected_error]")
+        shutdown()
+        raise
+
 
 def missing_config_field(entity, field, config):
     logger.warning(f"[invalid_{entity}] reason=[missing_configuration_field] field=[{field}] config=[{config}]")
@@ -42,18 +55,11 @@ def run():
         logger.warning(f"[service_is_already_running] result=[exiting..]")
         exit(1)
 
-    try:
-        init_mqtt()
-        init_sensors()
-    except KeyboardInterrupt:
-        logger.info('[service_exit] detail=[Initialization stage interrupted by user]')
-        api.stop()
-        unregister_sensors()
-        unregister_mqtt()
-        return
+    init_mqtt()
+    init_sensors()
 
-    signal.signal(signal.SIGTERM, shutdown)
-    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, signal_shutdown)
+    signal.signal(signal.SIGINT, signal_shutdown)
 
 
 def init_sensors():
@@ -132,9 +138,13 @@ def unregister_mqtt():
     mqtt.unregister_all()
 
 
-def shutdown(_, __):
+def signal_shutdown(_, __):
     logger.info("[exit_signal_received]")
+    shutdown()
+    logger.info("[service_exited] reason=[signal]")
+
+
+def shutdown():
     api.stop()
     unregister_sensors()
     unregister_mqtt()
-    logger.info("[service_exited] reason=[signal]")

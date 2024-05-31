@@ -124,7 +124,12 @@ def log_file_path(create: bool) -> Path:
             path = Path(os.environ['XDG_CACHE_HOME'])
         else:
             home = Path.home()
-            path = home / '.cache'
+            if os.path.exists(home):
+                path = home / '.cache'
+            else:
+                # Fallback for system no-login user
+                path = Path('/var/log')
+                create = False
 
     if create:
         os.makedirs(path / 'sensord', exist_ok=True)

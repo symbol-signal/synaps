@@ -80,3 +80,34 @@ topic = "living_room/desk/presence"  # Topic where the notification events are s
 broker = "cloud-broker"  # Another broker name defined in the `mqtt.toml` file
 topic = "sensors/living_room/desk/presence"  # Topic on the second broker
 ```
+
+### Systemd
+To run this service as a systemd service, create the user (optional):
+```commandline
+sudo useradd -r -s /usr/sbin/nologin sensord
+```
+Create the service file `/etc/systemd/system/sensord.service`:
+```
+[Unit]
+Description=Sensor Daemon Service
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/sensord
+Restart=always
+User=sensord
+Group=sensord
+
+[Install]
+WantedBy=multi-user.target
+```
+Active the service:
+```commandline
+sudo systemctl daemon-reload
+sudo systemctl enable sensord.service
+sudo systemctl start sensord.service
+```
+To manual debug you can run the service as `systemd` user:
+```commandline
+sudo su --shell /usr/local/bin/sensord sensord
+```
