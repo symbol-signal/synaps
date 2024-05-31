@@ -119,3 +119,7 @@ To manually debug, you can run the service as `systemd` user:
 ```commandline
 sudo -u sensord /usr/local/bin/sensord
 ```
+To read the service logs in the journal:
+```commandline
+ journalctl -u sensord
+```
