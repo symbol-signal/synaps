@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 _brokers: Dict[str, mqtt.Client] = {}
 
+_missing_brokers = set()
+
 REQUIRED_FIELDS = ['name', 'host']
 
 
@@ -23,16 +25,21 @@ def get_broker(broker):
 
 
 def send_presence_changed_event(broker: str, topic: str, sensor_id: SensorId, presence: bool):
+    client = _brokers.get(broker)
+    if not client:
+        if broker not in _missing_brokers:
+            _missing_brokers.add(broker)  # Keep record of missing brokers so we log the warning below only once
+            logger.warning(f"[missing_mqtt_broker] broker=[{broker}]")
+        return
+
+    _missing_brokers.discard(broker)
+
     payload = {
         "sensorId": f"{sensor_id.sensor_type.value}/{sensor_id.sensor_name}",
         "event": "presence_change",
         "eventAt": datetime.now(timezone.utc).isoformat(),
         "eventData": {"presence": presence},
     }
-    client = _brokers.get(broker)
-    if not broker:
-        return
-
     client.publish(topic, json.dumps(payload))
 
 

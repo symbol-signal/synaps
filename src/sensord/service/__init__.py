@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 @click.command()
-@click.option('--log-file-level', type=click.Choice(['debug', 'info', 'warning', 'error', 'critical']), default='info',
+@click.option('--log-file-level', type=click.Choice(['debug', 'info', 'warning', 'error', 'critical', 'off']), default='info',
               help='Set the log level for file logging')
 def cli(log_file_level):
     log.configure(True, log_file_level=log_file_level)

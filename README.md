@@ -1,9 +1,9 @@
 # Sensord
-The distribution package consists of two main components:
+The distribution package consists of two main components.
 
 **Sensor Service**
 - Executable: `sensord`
-- Manages IoT devices and sensors.
+- Manages IoT devices and sensors using the [Sensation library](https://github.com/symbol-signal/sensation).
 - Runs as a background process.
 - Handles communication and data processing for connected sensors.
 - Sends sensor data and events to external systems according to configured endpoints (MQTT, etc.)
@@ -82,10 +82,15 @@ topic = "sensors/living_room/desk/presence"  # Topic on the second broker
 ```
 
 ### Systemd
-To run this service as a systemd service, create the user (optional):
+To run this service as a systemd service, follow the steps below.
+
+*You can create a dedicated user for the service and add the user to the required groups (optional):*
 ```commandline
 sudo useradd -r -s /usr/sbin/nologin sensord
+sudo usermod -a -G dialout sensord
 ```
+**Note**: `dialout` group is required for reading serial port on Raspberry Pi OS
+
 Create the service file `/etc/systemd/system/sensord.service`:
 ```
 [Unit]
@@ -93,7 +98,7 @@ Description=Sensor Daemon Service
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/sensord
+ExecStart=/usr/local/bin/sensord --log-file-level off
 Restart=always
 User=sensord
 Group=sensord
@@ -101,13 +106,16 @@ Group=sensord
 [Install]
 WantedBy=multi-user.target
 ```
-Active the service:
+**Note**: You can remove the `--log-file-level off` option if you want to log to `/var/log/sensord`. 
+However, you need to set the corresponding permissions for the user.
+
+Active and start the service:
 ```commandline
 sudo systemctl daemon-reload
 sudo systemctl enable sensord.service
 sudo systemctl start sensord.service
 ```
-To manual debug you can run the service as `systemd` user:
+To manually debug, you can run the service as `systemd` user:
 ```commandline
-sudo su --shell /usr/local/bin/sensord sensord
+sudo -u sensord /usr/local/bin/sensord
 ```
