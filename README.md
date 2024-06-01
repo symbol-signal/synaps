@@ -105,7 +105,7 @@ To run this service as a systemd service, follow the steps below.
 sudo useradd -r -s /usr/sbin/nologin sensord
 sudo usermod -a -G dialout sensord
 ```
-**Note:** `dialout` group is required for reading serial port on Raspberry Pi OS
+**Note:** *`dialout` group is required for reading serial port on Raspberry Pi OS*
 
 Create the service file `/etc/systemd/system/sensord.service`:
 ```
@@ -122,8 +122,8 @@ Group=sensord
 [Install]
 WantedBy=multi-user.target
 ```
-**Note:** You can remove the `--log-file-level off` option if you want to log to `/var/log/sensord`. 
-However, you need to set the corresponding permissions for the user.
+**Note:** *You can remove the `--log-file-level off` option if you want to log to `/var/log/sensord`. 
+However, you need to set the corresponding permissions for the user.*
 
 Active and start the service:
 ```commandline
@@ -144,9 +144,9 @@ To read the service logs in the journal:
 Execute `sensorctl --help` to see the available commands. This CLI utility communicates with the `sensord` service.
 The service must be running when a command is executed.
 
-**Note:** If the service runs under a different user than the one executing `sensorctl`, then the current user must be added
+**Note:** *If the service runs under a different user than the one executing `sensorctl`, then the current user must be added
 to the same group as the primary group of the service user. For example, if the service runs as the `sensord` user
-with the `sensord` group, then add the current user to the same group:
+with the `sensord` group, then add the current user to the same group:*
 ```commandline
 sudo usermod -a -G sensord $USER
 ```
