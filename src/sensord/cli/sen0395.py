@@ -79,6 +79,8 @@ def service_call(func):
         with APIClient(api_socket_path) as client:
             try:
                 return func(client, console, *args, **kwargs)
+            except PermissionError as e:
+                console.print(f"[bold red]Access Denied: [/bold red]{e}")
             except ServiceException as e:
                 console.print(f"[bold red]Service Error: [/bold red]{e}")
     return wrapper
