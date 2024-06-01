@@ -20,16 +20,19 @@ def sen0395():
 
 @sen0395.command()
 def start():
+    """Start scanning"""
     send_command(Command.SENSOR_START)
 
 
 @sen0395.command()
 def stop():
+    """Stop scanning"""
     send_command(Command.SENSOR_STOP)
 
 
 @sen0395.command()
 def reset():
+    """Send reset command"""
     send_command(Command.RESET_SYSTEM)
 
 
@@ -37,6 +40,7 @@ def reset():
 @click.argument('detection_delay', type=click.IntRange(0, 65535))
 @click.argument('disappearance_delay', type=click.IntRange(0, 65535))
 def latency(detection_delay, disappearance_delay):
+    """Configure detection and disappearance latencies"""
     delay_detection_ms = detection_delay * 25
     delay_disappearance_ms = disappearance_delay * 25
     console = Console()
@@ -56,6 +60,7 @@ def latency(detection_delay, disappearance_delay):
 @click.argument('pard_s', type=int, required=False, default=None)
 @click.argument('pard_e', type=int, required=False, default=None)
 def detrange(para_s, para_e, parb_s, parb_e, parc_s, parc_e, pard_s, pard_e):
+    """Configure detection ranges"""
     params = [p for p in (para_s, para_e, parb_s, parb_e, parc_s, parc_e, pard_s, pard_e) if p is not None]
 
     try:
@@ -88,6 +93,7 @@ def service_call(func):
 @sen0395.command()
 @service_call
 def status(client: APIClient, console: Console):
+    """Print status"""
     statuses = client.send_get_status_sen0395()
     console.print(statuses)
 
@@ -95,12 +101,14 @@ def status(client: APIClient, console: Console):
 @sen0395.command()
 @service_call
 def enable(client: APIClient, console: Console):
+    """Start reading and processing data"""
     statuses = client.send_reading_enabled_sen0395(True)
     console.print(statuses)
 
 @sen0395.command()
 @service_call
 def disable(client: APIClient, console: Console):
+    """Stop reading and processing data"""
     statuses = client.send_reading_enabled_sen0395(False)
     console.print(statuses)
 

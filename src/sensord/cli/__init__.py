@@ -14,7 +14,7 @@ def cli():
 @cli.group()
 def sen0395():
     """
-    Subcommands for SEN0395 sensor.
+    Subcommands for controlling the DFRobot mmWave presence sensor SEN0395.
     """
     pass
 
