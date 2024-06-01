@@ -115,7 +115,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable sensord.service
 sudo systemctl start sensord.service
 ```
-To manually debug, you can run the service as `systemd` user:
+To manually debug, you can run the service as `sensord` user:
 ```commandline
 sudo -u sensord /usr/local/bin/sensord
 ```

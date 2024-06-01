@@ -49,10 +49,15 @@ def run():
         api.start()
     except SocketBindException as e:
         logger.error(f"[socket_bind_error] reason=[{e}] check=[Is the service already running?]")
-        print(f"You can try removing `/tmp/{paths.API_SOCKET}` if you are absolutely sure the service is not running.")
+        print(f"You can try removing `{paths.API_SOCKET}` if you are absolutely sure the service is not running.")
         exit(1)
     except ServiceAlreadyRunning:
-        logger.warning(f"[service_is_already_running] result=[exiting..]")
+        logger.warning("[service_is_already_running] result=[exiting]")
+        exit(1)
+    except PermissionError as e:
+        logger.warning(f"[socket_permission_error] detail=[{e}] result=[exiting]")
+        print("The service runs restricted under different user. "
+              f"You can try removing `{paths.API_SOCKET}` if you are absolutely sure the service is not running.")
         exit(1)
 
     init_mqtt()

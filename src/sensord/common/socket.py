@@ -66,7 +66,8 @@ class SocketServer(abc.ABC):
             self._serving_thread.start()
 
     def wait(self):
-        self._serving_thread.join()
+        if self._serving_thread.is_alive():
+            self._serving_thread.join()
 
     def serve(self):
         with self._lock:
