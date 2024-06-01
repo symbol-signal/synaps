@@ -105,7 +105,7 @@ To run this service as a systemd service, follow the steps below.
 sudo useradd -r -s /usr/sbin/nologin sensord
 sudo usermod -a -G dialout sensord
 ```
-**Note**: `dialout` group is required for reading serial port on Raspberry Pi OS
+**Note:** `dialout` group is required for reading serial port on Raspberry Pi OS
 
 Create the service file `/etc/systemd/system/sensord.service`:
 ```
@@ -122,7 +122,7 @@ Group=sensord
 [Install]
 WantedBy=multi-user.target
 ```
-**Note**: You can remove the `--log-file-level off` option if you want to log to `/var/log/sensord`. 
+**Note:** You can remove the `--log-file-level off` option if you want to log to `/var/log/sensord`. 
 However, you need to set the corresponding permissions for the user.
 
 Active and start the service:
@@ -139,3 +139,46 @@ To read the service logs in the journal:
 ```commandline
  journalctl -u sensord
 ```
+
+## Sensor Control CLI
+Execute `sensorctl --help` to see the available commands. This CLI utility communicates with the `sensord` service.
+The service must be running when a command is executed.
+
+**Note:** If the service runs under a different user than the one executing `sensorctl`, then the current user must be added
+to the same group as the primary group of the service user. For example, if the service runs as the `sensord` user
+with the `sensord` group, then add the current user to the same group:
+```commandline
+sudo usermod -a -G sensord $USER
+```
+*After adding the user to the group, the user needs to log out and log back in for the group changes to take effect.*
+
+### Subcommands
+
+#### SEN0395
+The sen0395 subcommand group provides commands for controlling the DFRobot mmWave presence sensor SEN0395.
+All subcommands accept the following option:
+- `--name NAME`: The name of the specific sensor to execute the command on. If not provided, the command is executed for all registered sensors.
+
+`start`\
+Start scanning with the SEN0395 sensor(s).
+
+`stop`\
+Stop scanning with the SEN0395 sensor(s).
+
+`reset`\
+Send a reset command to the SEN0395 sensor(s).
+
+`latency DETECTION_DELAY DISAPPEARANCE_DELAY`\
+Configure the detection and disappearance latencies for the SEN0395 sensor(s).
+
+`detrange PARA_S PARA_E [PARB_S] [PARB_E] [PARC_S] [PARC_E] [PARD_S] [PARD_E]`\
+Configure the detection range segments for the SEN0395 sensor(s).
+
+`status`\
+Print the status of the SEN0395 sensor(s).
+
+`enable`\
+Start reading and processing data from the SEN0395 sensor(s).
+
+`disable`\
+Stop reading and processing data from the SEN0395 sensor(s).
