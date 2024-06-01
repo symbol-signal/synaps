@@ -33,6 +33,10 @@ This makes `sensord` available for all users in the system, which can be conveni
 run it as a systemd service by a dedicated user.
 
 ## Sensord service
+Execute by: `sensord` command or run [as a systemd service](#systemd)
+> Never run more than one instance of the service at the same time. Especially, do not run simultaneously 
+> under a super user and a normal user.
+
 ### Configuration Directory
 All service configuration files must be placed in the `sensord` directory located in one of the configuration paths 
 according to the [XDG specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html):

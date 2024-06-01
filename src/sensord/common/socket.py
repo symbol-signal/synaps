@@ -2,6 +2,7 @@ import abc
 import logging
 import os
 import socket
+import stat
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
@@ -58,7 +59,8 @@ class SocketServer(abc.ABC):
             self._server.bind(str(self._socket_path))
         except (PermissionError, OSError) as e:
             raise SocketBindException(self._socket_path) from e
-
+        # Allow users from the same group to communicate with the server
+        os.chmod(self._socket_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP)
 
     def start(self):
         with self._lock:
