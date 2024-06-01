@@ -49,7 +49,19 @@ All sensors are configured in the configuration file `sensors.toml` which must b
 See the [example configuration file](examples/sensors.toml).
 
 ##### SEN0395
-Configuration fields to be added here...
+###### Mandatory fields
+- `type`: Specifies the type of the sensor. Must be set to `"sen0395"` for the SEN0395 sensor.
+- `name`: A unique name for the sensor instance. Used for identification.
+- `port`: The serial port to which the sensor is connected (e.g., `"/dev/ttyAMA0"`, `"/dev/ttyUSB0"`).
+
+###### Optional fields
+- `enabled` (default: `true`): If set to `true`, the service will start reading and processing sensor data (MQTT, presence logging, etc.).
+- `autostart` (default: `true`): Specifies whether the sensor should automatically start scanning upon service startup.
+- `print_presence` (default: `true`): Determines whether presence changes should be printed to stdout and logged.
+
+###### Section [[sensor.mqtt]] (optional)
+ - `broker`: The name of the MQTT broker to which the sensor should publish presence data.
+ - `topic`: The MQTT topic under which the presence data should be published.
 
 ### MQTT
 #### Broker Configuration
