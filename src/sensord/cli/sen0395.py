@@ -19,27 +19,31 @@ def sen0395():
 
 
 @sen0395.command()
-def start():
+@click.option('--name', help='The name of the specific sensor to start scanning.')
+def start(name):
     """Start scanning"""
-    send_command(Command.SENSOR_START)
+    send_command(Command.SENSOR_START, sensor_name=name)
 
 
 @sen0395.command()
-def stop():
+@click.option('--name', help='The name of the specific sensor to stop scanning.')
+def stop(name):
     """Stop scanning"""
-    send_command(Command.SENSOR_STOP)
+    send_command(Command.SENSOR_STOP, sensor_name=name)
 
 
 @sen0395.command()
-def reset():
+@click.option('--name', help='The name of the specific sensor to reset.')
+def reset(name):
     """Send reset command"""
-    send_command(Command.RESET_SYSTEM)
+    send_command(Command.RESET_SYSTEM, sensor_name=name)
 
 
 @sen0395.command()
 @click.argument('detection_delay', type=click.IntRange(0, 65535))
 @click.argument('disappearance_delay', type=click.IntRange(0, 65535))
-def latency(detection_delay, disappearance_delay):
+@click.option('--name', help='The name of the specific sensor to configure latency.')
+def latency(detection_delay, disappearance_delay, name):
     """Configure detection and disappearance latencies"""
     delay_detection_ms = detection_delay * 25
     delay_disappearance_ms = disappearance_delay * 25
@@ -47,7 +51,7 @@ def latency(detection_delay, disappearance_delay):
     console.print(f"Delay on detection: {delay_detection_ms} ms, "
                   f"Delay after disappearance: {delay_disappearance_ms} ms")
 
-    send_command(Command.LATENCY_CONFIG, [-1, detection_delay, disappearance_delay])
+    send_command(Command.LATENCY_CONFIG, [-1, detection_delay, disappearance_delay], sensor_name=name)
 
 
 @sen0395.command()
@@ -59,7 +63,8 @@ def latency(detection_delay, disappearance_delay):
 @click.argument('parc_e', type=int, required=False, default=None)
 @click.argument('pard_s', type=int, required=False, default=None)
 @click.argument('pard_e', type=int, required=False, default=None)
-def detrange(para_s, para_e, parb_s, parb_e, parc_s, parc_e, pard_s, pard_e):
+@click.option('--name', help='The name of the specific sensor to configure detection range.')
+def detrange(para_s, para_e, parb_s, parb_e, parc_s, parc_e, pard_s, pard_e, name):
     """Configure detection ranges"""
     params = [p for p in (para_s, para_e, parb_s, parb_e, parc_s, parc_e, pard_s, pard_e) if p is not None]
 
@@ -70,7 +75,8 @@ def detrange(para_s, para_e, parb_s, parb_e, parc_s, parc_e, pard_s, pard_e):
     except ValueError as e:
         raise click.BadParameter(str(e))
 
-    send_command(Command.DETECTION_RANGE_CONFIG, [-1] + params)
+    send_command(Command.DETECTION_RANGE_CONFIG, [-1] + params, sensor_name=name)
+
 
 def service_call(func):
     @wraps(func)
@@ -91,25 +97,29 @@ def service_call(func):
     return wrapper
 
 @sen0395.command()
+@click.option('--name', help='The name of the specific sensor to get the status.')
 @service_call
-def status(client: APIClient, console: Console):
+def status(client: APIClient, console: Console, name):
     """Print status"""
-    statuses = client.send_get_status_sen0395()
+    statuses = client.send_get_status_sen0395(sensor_name=name)
     console.print(statuses)
 
 
 @sen0395.command()
+@click.option('--name', help='The name of the specific sensor to enable reading and processing.')
 @service_call
-def enable(client: APIClient, console: Console):
+def enable(client: APIClient, console: Console, name):
     """Start reading and processing data"""
-    statuses = client.send_reading_enabled_sen0395(True)
+    statuses = client.send_reading_enabled_sen0395(True, sensor_name=name)
     console.print(statuses)
 
+
 @sen0395.command()
+@click.option('--name', help='The name of the specific sensor to disable reading and processing.')
 @service_call
-def disable(client: APIClient, console: Console):
+def disable(client: APIClient, console: Console, name):
     """Stop reading and processing data"""
-    statuses = client.send_reading_enabled_sen0395(False)
+    statuses = client.send_reading_enabled_sen0395(False, sensor_name=name)
     console.print(statuses)
 
 
