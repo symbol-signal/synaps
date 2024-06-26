@@ -9,7 +9,7 @@ from sensation.sen0395 import Command
 from sensord import common
 from sensord.cli.client import APIClient
 from sensord.common.sen0395 import SensorStatuses, SensorConfigChainResponse, SensorCommandResponse
-from sensord.common.socket import SocketServer, SocketServerStoppedAlready
+from sensord.common.socket import SocketServerAsync, SocketServerStoppedAlready
 from sensord.service import paths
 from sensord.service.err import ServiceAlreadyRunning
 
@@ -209,13 +209,13 @@ class APISen0395Reading(APIMethod):
 DEFAULT_METHODS = (APISen0395Command(), APISen0395Configure(), APISen0395Status(), APISen0395Reading())
 
 
-class APIServer(SocketServer):
+class APIServer(SocketServerAsync):
 
     def __init__(self, socket_path, methods=DEFAULT_METHODS):
         super().__init__(socket_path, allow_ping=True)  # Allow ping for stale socket check
         self._methods = {method.method: method for method in methods}
 
-    def handle(self, req):
+    async def handle(self, req):
         try:
             req_body = json.loads(req)
         except JSONDecodeError as e:

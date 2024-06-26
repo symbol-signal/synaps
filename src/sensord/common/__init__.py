@@ -4,6 +4,7 @@ from datetime import datetime
 
 TRUE_OPTIONS = ('yes', 'true', 'y', '1', 'on')
 
+
 def str_to_bool(value: str):
     return value.lower() in TRUE_OPTIONS
 

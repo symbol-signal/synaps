@@ -1,4 +1,5 @@
 import abc
+import asyncio
 import logging
 import os
 import socket
@@ -6,7 +7,6 @@ import stat
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from threading import Thread, RLock
 from types import coroutine
 from typing import List, NamedTuple, Optional
 
@@ -40,102 +40,75 @@ class SocketServerStoppedAlready(SocketServerException):
     pass
 
 
-class SocketServer(abc.ABC):
+class SocketServerAsync(abc.ABC):
 
-    def __init__(self, socket_path, *, allow_ping=False):
+    def __init__(self, socket_path: Path, *, allow_ping=False):
         self._socket_path = socket_path
         self._allow_ping = allow_ping
-        self._server: socket = None
-        self._serving_thread = Thread(target=self._serve, name='Thread-ApiServer')
-        self._lock = RLock()
-        self._stopped = False
+        self._server = None
 
-    def _bind_socket(self):
-        if self._stopped:
-            raise SocketServerStoppedAlready
-
-        self._server = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+    async def start(self):
         try:
-            self._server.bind(str(self._socket_path))
-        except (PermissionError, OSError) as e:
+            self._server = await asyncio.start_unix_server(self._handle_client, path=str(self._socket_path))
+        except OSError as e:
             raise SocketBindException(self._socket_path) from e
+
         # Allow users from the same group to communicate with the server
         os.chmod(self._socket_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP)
-
-    def start(self):
-        with self._lock:
-            self._bind_socket()
-            self._serving_thread.start()
-
-    def wait(self):
-        if self._serving_thread.is_alive():
-            self._serving_thread.join()
-
-    def serve(self):
-        with self._lock:
-            self._bind_socket()
-        self._serve()
-
-    def _serve(self):
         log.info('[server_started]')
-        server = self._server  # This prevents None access error when the server is closed
-        while not self._stopped:
-            datagram, client_address = server.recvfrom(RECV_BUFFER_LENGTH)
-            if not datagram:
-                break
 
-            req_body = datagram.decode()
-            if self._allow_ping and req_body == 'ping':
-                resp_body = 'pong'
-            else:
-                # TODO catch exceptions? TypeError: Object of type AggregatedResponse is not JSON serializable
-                resp_body = self.handle(req_body)
+    async def serve(self):
+        if not self._server:
+            raise RuntimeError("Server not started. Call 'start()' before 'serve()'.")
+        async with self._server:
+            await self._server.serve_forever()
 
-            if resp_body:
-                if client_address:
-                    encoded = resp_body.encode()
-                    try:
-                        server.sendto(encoded, client_address)
-                    except OSError as e:
-                        if e.errno == 111:
-                            log.warning(f"[client_response_timeout] detail=[{e}]")
-                            continue
-                        if e.errno == 90:
-                            log.error(f"[server_response_payload_too_large] length=[{len(encoded)}]")
-                        raise e
-                else:
-                    log.warning('[missing_client_address]')
-        log.info('[server_stopped]')
+    async def _handle_client(self, reader, writer):
+        data = await reader.read(RECV_BUFFER_LENGTH)
+        if not data:
+            return
+
+        req_body = data.decode()
+        if self._allow_ping and req_body == 'ping':
+            resp_body = 'pong'
+        else:
+            resp_body = await self.handle(req_body)
+
+        if resp_body:
+            try:
+                writer.write(resp_body.encode())
+                await writer.drain()
+            except asyncio.CancelledError:
+                raise
+            except OSError as e:
+                if e.errno == 111:
+                    log.warning(f"[client_response_timeout] detail=[{e}]")
+                if e.errno == 90:
+                    log.error(f"[server_response_payload_too_large] length=[{len(resp_body.encode())}]")
+
+        writer.close()
+        await writer.wait_closed()
 
     @abc.abstractmethod
-    def handle(self, req_body):
+    async def handle(self, req_body):
         """
         Handle request and optionally return response
         :return: response body or None if no response
         """
 
-    def stop(self):
-        self.close()
+    async def stop(self):
+        if not self._server:
+            return
 
-    def close(self):
-        with self._lock:
-            self._stopped = True
+        try:
+            self._server.close()
+            await self._server.wait_closed()
+        finally:
+            self._server = None
+            if os.path.exists(self._socket_path):
+                os.remove(self._socket_path)
 
-            if self._server is None:
-                return
-
-            socket_name = self._server.getsockname()  # This must be executed before the socket is closed
-            try:
-                self._server.shutdown(socket.SHUT_RDWR)
-                self._server.close()
-            finally:
-                self._server = None
-                if os.path.exists(socket_name):
-                    os.remove(socket_name)
-
-    def close_and_wait(self):
-        self.close()
-        self.wait()
+        log.info('[server_stopped]')
 
 
 class Error(Enum):
