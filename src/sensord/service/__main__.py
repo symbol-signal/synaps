@@ -1,5 +1,5 @@
-from sensord.service import cli
+from sensord.service import new_cli
 
 
 if __name__ == "__main__":
-    cli()
+    new_cli()

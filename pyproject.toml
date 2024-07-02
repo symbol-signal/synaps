@@ -14,8 +14,9 @@ dependencies = [
     "sensation>=0.1.2",
     "click>=8.1.7",
     "rich-click>=1.7.3",
+    "aiofiles>=24.1.0",
     "tomli>=2.0.1",
-    "paho-mqtt>=1.6.1",
+    "gmqtt>=0.6.16 ",
     "websockets>=12.0"
 ]
 

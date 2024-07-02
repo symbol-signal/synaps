@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Dict
 
-import paho.mqtt.client as mqtt
+from gmqtt import Client
 from rich import json
 
 from sensation.common import SensorId
@@ -10,7 +10,7 @@ from sensord.service.err import MissingConfigurationField, AlreadyRegistered
 
 logger = logging.getLogger(__name__)
 
-_brokers: Dict[str, mqtt.Client] = {}
+_brokers: Dict[str, Client] = {}
 
 _missing_brokers = set()
 
@@ -41,6 +41,7 @@ def send_presence_changed_event(broker: str, topic: str, sensor_id: SensorId, pr
         "eventData": {"presence": presence},
     }
     client.publish(topic, json.dumps(payload))
+    logger.debug(f"[mqtt_message_published] broker=[{broker}] message=[{payload}]")
 
 
 def on_connect(_, userdata, __, rc):
@@ -58,11 +59,7 @@ def on_disconnect(_, userdata, rc):
             f"[mqtt_disconnected_unexpectedly] broker=[{userdata['name']} host=[{userdata['host']}]] return code={rc}")
 
 
-def on_publish(_, userdata, mid):
-    logger.debug(f"[mqtt_message_published] broker=[{userdata['name']}] message_id=[{mid}]")
-
-
-def register(**config):
+async def register(**config):
     for required_field in REQUIRED_FIELDS:
         if required_field not in config or not config[required_field]:
             raise MissingConfigurationField(required_field)
@@ -73,20 +70,17 @@ def register(**config):
     if _brokers.get(name):
         raise AlreadyRegistered
 
-    client = mqtt.Client(userdata={'name': name, 'host': host})
+    client = Client(client_id=name)
 
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
-    client.on_publish = on_publish
 
-    client.connect(host=host)
-    client.loop_start()
+    await client.connect(host=host)
 
     _brokers[name] = client
 
 
-def unregister_all():
+async def unregister_all():
     for name, client in list(_brokers.items()):
-        client.loop_stop()
-        client.disconnect()
+        await client.disconnect()
         del _brokers[name]

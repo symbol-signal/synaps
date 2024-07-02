@@ -1,6 +1,8 @@
+import asyncio
 import logging
 import signal
 
+import aiofiles
 import rich_click as click
 import tomli
 
@@ -14,8 +16,55 @@ from sensord.service.paths import ConfigFileNotFoundError
 logger = logging.getLogger(__name__)
 
 
+def register_signal_handlers(loop):
+    for s in (signal.SIGTERM, signal.SIGINT):
+        loop.add_signal_handler(
+            s,
+            lambda: asyncio.create_task(shutdown(s, loop))
+        )
+
+
+async def shutdown(signal_, loop):
+    logger.info(f"[exit_signal_received] signal=[{signal_.name}]")
+
+    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+    logger.info(f"[cancelling_async_tasks] count=[{len(tasks)}]")
+    for task in tasks:
+        task.cancel()
+    await asyncio.gather(*tasks, return_exceptions=True)
+    loop.stop()
+
+    logger.info("[exit_task_completed]")
+
+
 @click.command()
-@click.option('--log-file-level', type=click.Choice(['debug', 'info', 'warning', 'error', 'critical', 'off']), default='info',
+@click.option('--log-file-level', type=click.Choice(['debug', 'info', 'warning', 'error', 'critical', 'off']),
+              default='info',
+              help='Set the log level for file logging')
+def new_cli(log_file_level):
+    log.configure(True, log_file_level=log_file_level)
+
+    loop = asyncio.get_event_loop()
+    register_signal_handlers(loop)
+    try:
+        loop.run_until_complete(run_service())
+    finally:
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.close()
+
+
+async def run_service():
+    try:
+        await asyncio.sleep(5)
+    except asyncio.CancelledError:
+        pass
+    finally:
+        logger.info("[service_stopped]")
+
+
+@click.command()
+@click.option('--log-file-level', type=click.Choice(['debug', 'info', 'warning', 'error', 'critical', 'off']),
+              default='info',
               help='Set the log level for file logging')
 def cli(log_file_level):
     log.configure(True, log_file_level=log_file_level)
@@ -24,10 +73,10 @@ def cli(log_file_level):
         run()
     except KeyboardInterrupt:
         logger.info('[service_exit] detail=[Initialization stage interrupted by user]')
-        shutdown()
+        shutdown_old()
     except Exception:
         logger.exception("[unexpected_error]")
-        shutdown()
+        shutdown_old()
         raise
 
 
@@ -117,39 +166,44 @@ def unregister_sensors():
     sen0395.unregister_all()
 
 
-def init_mqtt():
+async def init_mqtt():
     try:
         config_file = paths.lookup_mqtt_config_file()
     except ConfigFileNotFoundError:
         return
 
-    with open(config_file, 'rb') as f:
-        config = tomli.load(f)
+    async with aiofiles.open(config_file, 'rb') as f:
+        content = await f.read()
+    config = tomli.loads(content.decode())
 
     brokers = config.get('broker')
     if not brokers:
         return
 
-    for broker in brokers:
-        try:
-            mqtt.register(**broker)
-        except MissingConfigurationField as e:
-            missing_sensor_config_field(e.field, broker)
-        except AlreadyRegistered:
-            logger.warning(f"[invalid_mqtt_broker] reason=[duplicated_broker] config=[{broker}]")
+    register_broker_tasks = [register_broker(broker) for broker in brokers]
+    await asyncio.gather(*register_broker_tasks)
 
 
-def unregister_mqtt():
-    mqtt.unregister_all()
+async def register_broker(broker):
+    try:
+        await mqtt.register(**broker)
+    except MissingConfigurationField as e:
+        missing_sensor_config_field(e.field, broker)
+    except AlreadyRegistered:
+        logger.warning(f"[invalid_mqtt_broker] reason=[duplicated_broker] config=[{broker}]")
+
+
+async def unregister_mqtt():
+    await mqtt.unregister_all()
 
 
 def signal_shutdown(_, __):
     logger.info("[exit_signal_received]")
-    shutdown()
+    shutdown_old()
     logger.info("[service_exited] reason=[signal]")
 
 
-def shutdown():
+def shutdown_old():
     api.stop()
     unregister_sensors()
-    unregister_mqtt()
+    unregister_mqtt()  # TODO await
