@@ -44,19 +44,17 @@ def send_presence_changed_event(broker: str, topic: str, sensor_id: SensorId, pr
     logger.debug(f"[mqtt_message_published] broker=[{broker}] message=[{payload}]")
 
 
-def on_connect(_, userdata, __, rc):
+def on_connect(client, flags, rc, properties):
+    props = client.config_x
     if rc == 0:
-        logger.info(f"[mqtt_connected] broker=[{userdata['name']}] host=[{userdata['host']}]")
+        logger.info(f"[mqtt_connected] broker=[{props['name']}] host=[{props['host']}]")
     else:
-        logger.warning(f"[mqtt_connection_failed] broker=[{userdata['name']}] host=[{userdata['host']}]")
+        logger.warning(f"[mqtt_connection_failed] broker=[{props['name']}] host=[{props['host']}]")
 
 
-def on_disconnect(_, userdata, rc):
-    if rc == 0:
-        logger.info(f"[mqtt_disconnected] broker=[{userdata['name']}] host=[{userdata['host']}]")
-    else:
-        logger.warning(
-            f"[mqtt_disconnected_unexpectedly] broker=[{userdata['name']} host=[{userdata['host']}]] return code={rc}")
+def on_disconnect(client, packet, exc=None):
+    props = client.config_x
+    logger.info(f"[mqtt_disconnected] broker=[{props['name']}] host=[{props['host']}]")
 
 
 async def register(**config):
@@ -71,6 +69,7 @@ async def register(**config):
         raise AlreadyRegistered
 
     client = Client(client_id=name)
+    client.config_x = config
 
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
@@ -82,5 +81,7 @@ async def register(**config):
 
 async def unregister_all():
     for name, client in list(_brokers.items()):
-        await client.disconnect()
+        if client.is_connected:
+            logger.info(f"[disconnecting_mqtt] broker=[{name}]")
+            await client.disconnect()
         del _brokers[name]

@@ -69,7 +69,7 @@ Presence change events of a sensor can be sent as an MQTT message to an MQTT bro
 defined in the `mqtt.toml` configuration file. See the [example configuration file](examples/mqtt.toml).
 
 #### Payload
-The schema of the MQTT message payload is defined in the [presence-mqtt-schema.json](doc/presence-mqtt-schema.json) file.
+The schema of the MQTT message payload is defined in the [presence-mqtt-schema.json](DOC/presence-mqtt-schema.json) file.
 ##### Example
 ```json
 {

@@ -43,23 +43,20 @@ async def shutdown(signal_, loop):
               help='Set the log level for file logging')
 def new_cli(log_file_level):
     log.configure(True, log_file_level=log_file_level)
-
-    loop = asyncio.get_event_loop()
-    register_signal_handlers(loop)
-    try:
-        loop.run_until_complete(run_service())
-    finally:
-        loop.run_until_complete(loop.shutdown_asyncgens())
-        loop.close()
+    asyncio.run(run_service())
 
 
 async def run_service():
-    try:
-        await asyncio.sleep(5)
-    except asyncio.CancelledError:
-        pass
-    finally:
-        logger.info("[service_stopped]")
+    await init_mqtt()
+
+    await unregister_mqtt()
+    # try:
+    #     await asyncio.gather(init_mqtt())
+    # except asyncio.CancelledError:
+    #     pass
+    # finally:
+    #     await unregister_mqtt()
+    #     logger.info("[service_stopped]")
 
 
 @click.command()
