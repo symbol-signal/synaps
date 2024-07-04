@@ -1,9 +1,9 @@
 import logging
 from typing import List, Optional
 
-from serial import Serial
+import serialio
 
-from sensation.sen0395 import Sensor, PresenceHandler
+from sensation.sen0395 import Sensor, SensorAsync, PresenceHandlerAsync
 from sensord.service import mqtt
 from sensord.service.err import AlreadyRegistered, MissingConfigurationField, InvalidConfiguration
 
@@ -14,13 +14,13 @@ REQUIRED_FIELDS = ['port']
 _sensors = {}
 
 
-def register(**config):
+async def register(**config):
     validate_config(config)
 
     if _sensors.get(config['name']):
         raise AlreadyRegistered
 
-    sensor = _init_sensor(config)
+    sensor = await _init_sensor(config)
     _sensors[config['name']] = sensor
 
 
@@ -38,9 +38,13 @@ def validate_config(config):
             if 'topic' not in broker_config:
                 raise MissingConfigurationField('mqtt.topic')
 
-def _init_sensor(config):
-    s = Sensor(config['name'], Serial(config['port'], 115200, timeout=1))
-    handler = PresenceHandler()
+
+async def _init_sensor(config):
+    serial_con = serialio.serial_for_url(config['port'], 115200)
+    s = SensorAsync(config['name'], serial_con)
+    await serial_con.open()
+
+    handler = PresenceHandlerAsync()
     s.handlers.append(handler)
 
     if config.get('print_presence'):
@@ -56,17 +60,18 @@ def _init_sensor(config):
         s.start_reading()
 
     if config.get('autostart'):
-        scanning = s.read_presence() is not None
+        scanning = await s.read_presence() is not None
         if scanning:
             log.info(f"[autostart] sensor=[{s.sensor_id}] result=[already_scanning]")
         else:
-            resp = s.start_scanning()
+            resp = await s.start_scanning()
             if resp:
                 log.info(f"[autostart] sensor=[{s.sensor_id}] result=[started]")
             else:
                 log.warning(f"[autostart] sensor=[{s.sensor_id}] result=[failed] response=[{resp}]")
 
     return s
+
 
 def get_all_sensors() -> List[Sensor]:
     return list(_sensors.values())
@@ -76,7 +81,7 @@ def get_sensor(name) -> Optional[Sensor]:
     return _sensors.get(name)
 
 
-def unregister_all():
+async def unregister_all():
     for name, sensor in list(_sensors.items()):
-        sensor.close()
+        await sensor.close()
         del _sensors[name]
