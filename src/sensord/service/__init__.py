@@ -59,6 +59,7 @@ async def run_service():
         try:
             await start_api()
             await shutdown_event.wait()
+            await api.stop()
         except APINotStarted:
             failure = True
         except Exception:
