@@ -258,7 +258,7 @@ class APIServer(SocketServerAsync):
 _api_server = APIServer(paths.api_socket_path())
 
 
-def start():
+async def start():
     socket_path = paths.api_socket_path()
 
     with APIClient(socket_path) as client:
@@ -272,10 +272,10 @@ def start():
         log.warning("[stale_socket_removed]")
 
     try:
-        _api_server.start()
+        await _api_server.start()
     except SocketServerStoppedAlready:
         pass  # Stopped before started -> ignore..
 
 
-def stop():
-    _api_server.close_and_wait()
+async def stop():
+    await _api_server.stop()

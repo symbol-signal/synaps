@@ -1,8 +1,14 @@
 class SensordException(Exception):
     pass
 
+
+class APINotStarted(SensordException):
+    pass
+
+
 class ServiceAlreadyRunning(SensordException):
     pass
+
 
 class InvalidConfiguration(SensordException):
     pass

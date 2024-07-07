@@ -2,6 +2,7 @@ import asyncio
 import logging
 import signal
 from asyncio import Event
+from typing import Optional
 
 import aiofiles
 import rich_click as click
@@ -11,30 +12,12 @@ from sensation.common import SensorType
 from sensord.common.socket import SocketBindException
 from sensord.service import api, mqtt, paths, sen0395, log
 from sensord.service.err import UnknownSensorType, MissingConfigurationField, AlreadyRegistered, InvalidConfiguration, \
-    ServiceAlreadyRunning
+    ServiceAlreadyRunning, APINotStarted
 from sensord.service.paths import ConfigFileNotFoundError
 
 logger = logging.getLogger(__name__)
 
-shutdown_event = None
-
-
-@click.command()
-@click.option('--log-file-level', type=click.Choice(['debug', 'info', 'warning', 'error', 'critical', 'off']),
-              default='info',
-              help='Set the log level for file logging')
-def cli_old(log_file_level):
-    log.configure(True, log_file_level=log_file_level)
-
-    try:
-        run()
-    except KeyboardInterrupt:
-        logger.info('[service_exit] detail=[Initialization stage interrupted by user]')
-        shutdown_old()
-    except Exception:
-        logger.exception("[unexpected_error]")
-        shutdown_old()
-        raise
+shutdown_event: Optional[Event] = None
 
 
 def register_signal_handlers():
@@ -54,24 +37,57 @@ async def shutdown(signal_):
               help='Set the log level for file logging')
 def cli(log_file_level):
     log.configure(True, log_file_level=log_file_level)
+    logger.info('[service_started]')
     asyncio.run(run_service())
 
 
 async def run_service():
+    failure = False
+
     global shutdown_event
     shutdown_event = Event()
 
     register_signal_handlers()
 
-    await init_mqtt()
-    await init_sensors()
+    results = await asyncio.gather(init_mqtt(), init_sensors(), return_exceptions=True)
+    for result in results:
+        if isinstance(result, Exception):
+            failure = True
+            logger.error(f"[error_during_init]: {result}")
 
-    await shutdown_event.wait()
+    if not failure:
+        try:
+            await start_api()
+            await shutdown_event.wait()
+        except APINotStarted:
+            failure = True
+        except Exception:
+            logger.exception("[unknown_error_during_init]")
+            failure = True
+
     logger.info("[shutdown_initiated]")
+    results = await asyncio.gather(unregister_sensors(), unregister_mqtt(), return_exceptions=True)
+    for result in results:
+        if isinstance(result, Exception):
+            failure = True
+            logger.error(f"[error_during_shutdown]: {result}")
 
-    await unregister_sensors()
-    await unregister_mqtt()
     logger.info("[service_stopped]")
+
+    if failure:
+        exit(1)
+
+
+def missing_config_field(entity, field, config):
+    logger.warning(f"[invalid_{entity}] reason=[missing_configuration_field] field=[{field}] config=[{config}]")
+
+
+def missing_sensor_config_field(field, config):
+    missing_config_field('sensor', field, config)
+
+
+def missing_mqtt_config_field(field, config):
+    missing_config_field('mqtt_broker', field, config)
 
 
 async def init_mqtt():
@@ -125,42 +141,6 @@ async def init_sensors():
         logger.warning('[no_sensors_loaded] detail=[No sensors configured in the config file: %s]', config_file)
 
 
-def missing_config_field(entity, field, config):
-    logger.warning(f"[invalid_{entity}] reason=[missing_configuration_field] field=[{field}] config=[{config}]")
-
-
-def missing_sensor_config_field(field, config):
-    missing_config_field('sensor', field, config)
-
-
-def missing_mqtt_config_field(field, config):
-    missing_config_field('mqtt_broker', field, config)
-
-
-def run():
-    logger.info('[service_started]')
-    try:
-        api.start()
-    except SocketBindException as e:
-        logger.error(f"[socket_bind_error] reason=[{e}] check=[Is the service already running?]")
-        print(f"You can try removing `{paths.API_SOCKET}` if you are absolutely sure the service is not running.")
-        exit(1)
-    except ServiceAlreadyRunning:
-        logger.warning("[service_is_already_running] result=[exiting]")
-        exit(1)
-    except PermissionError as e:
-        logger.warning(f"[socket_permission_error] detail=[{e}] result=[exiting]")
-        print("The service runs restricted under different user. "
-              f"You can try removing `{paths.API_SOCKET}` if you are absolutely sure the service is not running.")
-        exit(1)
-
-    init_mqtt()
-    init_sensors()
-
-    signal.signal(signal.SIGTERM, signal_shutdown)
-    signal.signal(signal.SIGINT, signal_shutdown)
-
-
 async def register_sensors(sensors):
     register_sensor_tasks = [register_sensor(sensor) for sensor in sensors]
     await asyncio.gather(*register_sensor_tasks)
@@ -198,13 +178,18 @@ async def unregister_sensors():
     await sen0395.unregister_all()
 
 
-def signal_shutdown(_, __):
-    logger.info("[exit_signal_received]")
-    shutdown_old()
-    logger.info("[service_exited] reason=[signal]")
-
-
-def shutdown_old():
-    api.stop()
-    unregister_sensors()
-    unregister_mqtt()  # TODO await
+async def start_api():
+    try:
+        await api.start()
+    except SocketBindException as e:
+        logger.error(f"[socket_bind_error] reason=[{e}] check=[Is the service already running?]")
+        print(f"You can try removing `{paths.API_SOCKET}` if you are absolutely sure the service is not running.")
+        raise APINotStarted
+    except ServiceAlreadyRunning:
+        logger.warning("[service_is_already_running] result=[exiting]")
+        raise APINotStarted
+    except PermissionError as e:
+        logger.warning(f"[socket_permission_error] detail=[{e}] result=[exiting]")
+        print("The service runs restricted under different user. "
+              f"You can try removing `{paths.API_SOCKET}` if you are absolutely sure the service is not running.")
+        raise APINotStarted
