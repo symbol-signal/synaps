@@ -5,8 +5,9 @@
 ## Install on raspberry in editable mode
 `flit install --user --symlink`
 
-## To fix
-```
-[13:11:22] WARNING  [command_failed] sensor=[sen0395/desk] command=[sensorStop] params=[()] failure=[CommandFailure.NO_COMMAND_CONFIRMATION] outputs=[[$JYBSS,0, , , *,
-                    sensorStop, Done]]
+## Publish
+```commandline
+export FLIT_USERNAME=__token__
+export FLIT_PASSWORD=
+flit publish
 ```
