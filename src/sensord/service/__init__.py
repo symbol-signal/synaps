@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import signal
+from asyncio import Event
 
 import aiofiles
 import rich_click as click
@@ -14,6 +15,8 @@ from sensord.service.err import UnknownSensorType, MissingConfigurationField, Al
 from sensord.service.paths import ConfigFileNotFoundError
 
 logger = logging.getLogger(__name__)
+
+shutdown_event = None
 
 
 @click.command()
@@ -34,25 +37,15 @@ def cli_old(log_file_level):
         raise
 
 
-def register_signal_handlers(loop):
+def register_signal_handlers():
+    loop = asyncio.get_running_loop()
     for s in (signal.SIGTERM, signal.SIGINT):
-        loop.add_signal_handler(
-            s,
-            lambda: asyncio.create_task(shutdown(s, loop))
-        )
+        loop.add_signal_handler(s, lambda: asyncio.create_task(shutdown(s)))
 
 
-async def shutdown(signal_, loop):
+async def shutdown(signal_):
     logger.info(f"[exit_signal_received] signal=[{signal_.name}]")
-
-    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
-    logger.info(f"[cancelling_async_tasks] count=[{len(tasks)}]")
-    for task in tasks:
-        task.cancel()
-    await asyncio.gather(*tasks, return_exceptions=True)
-    loop.stop()
-
-    logger.info("[exit_task_completed]")
+    shutdown_event.set()
 
 
 @click.command()
@@ -65,17 +58,20 @@ def cli(log_file_level):
 
 
 async def run_service():
+    global shutdown_event
+    shutdown_event = Event()
+
+    register_signal_handlers()
+
     await init_mqtt()
     await init_sensors()
 
+    await shutdown_event.wait()
+    logger.info("[shutdown_initiated]")
+
+    await unregister_sensors()
     await unregister_mqtt()
-    # try:
-    #     await asyncio.gather(init_mqtt())
-    # except asyncio.CancelledError:
-    #     pass
-    # finally:
-    #     await unregister_mqtt()
-    #     logger.info("[service_stopped]")
+    logger.info("[service_stopped]")
 
 
 async def init_mqtt():
@@ -84,6 +80,7 @@ async def init_mqtt():
     except ConfigFileNotFoundError:
         return
 
+    logger.info(f"[loading_config_file] type=[mqtt] file=[{config_file}]")
     async with aiofiles.open(config_file, 'rb') as f:
         content = await f.read()
     config = tomli.loads(content.decode())
@@ -116,6 +113,7 @@ async def init_sensors():
         logger.warning(f"[no_sensors_config_file] detail=[{e}]")
         return
 
+    logger.info(f"[loading_config_file] type=[sensors] file=[{config_file}]")
     async with aiofiles.open(config_file, 'rb') as f:
         content = await f.read()
     config = tomli.loads(content.decode())
@@ -196,8 +194,8 @@ async def register_sensor_by_type(config):
     raise UnknownSensorType(config["type"])
 
 
-def unregister_sensors():
-    sen0395.unregister_all()
+async def unregister_sensors():
+    await sen0395.unregister_all()
 
 
 def signal_shutdown(_, __):
