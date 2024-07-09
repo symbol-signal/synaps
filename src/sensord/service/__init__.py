@@ -23,10 +23,10 @@ shutdown_event: Optional[Event] = None
 def register_signal_handlers():
     loop = asyncio.get_running_loop()
     for s in (signal.SIGTERM, signal.SIGINT):
-        loop.add_signal_handler(s, lambda: asyncio.create_task(shutdown(s)))
+        loop.add_signal_handler(s, lambda: asyncio.create_task(on_signal(s)))
 
 
-async def shutdown(signal_):
+async def on_signal(signal_):
     logger.info(f"[exit_signal_received] signal=[{signal_.name}]")
     shutdown_event.set()
 
@@ -38,45 +38,60 @@ async def shutdown(signal_):
 def cli(log_file_level):
     log.configure(True, log_file_level=log_file_level)
     logger.info('[service_started]')
-    asyncio.run(run_service())
+    try:
+        asyncio.run(run_service())
+        logger.info("[service_stopped]")
+    except APINotStarted:
+        # Check start_api() function raising this err for details
+        exit(1)
+    except Exception:
+        logger.exception("[service_failed]")
+        exit(1)
 
 
 async def run_service():
-    failure = False
-
     global shutdown_event
     shutdown_event = Event()
 
     register_signal_handlers()
 
+    init_success = await initialize()
+
+    if init_success:
+        await shutdown_event.wait()
+
+    await shutdown()
+
+
+async def initialize():
+    # First start API to prevent the service to run more than one instance
+    await start_api()  # Raising exceptions if not started
+
+    # Continue with init after API started successfully
     results = await asyncio.gather(init_mqtt(), init_sensors(), return_exceptions=True)
+
+    failed = False
     for result in results:
         if isinstance(result, Exception):
-            failure = True
-            logger.error(f"[error_during_init]: {result}")
+            logger.error("[error_during_init]", exc_info=result)
+            failed = True
 
-    if not failure:
-        try:
-            await start_api()
-            await shutdown_event.wait()
-            await api.stop()
-        except APINotStarted:
-            failure = True
-        except Exception:
-            logger.exception("[unknown_error_during_init]")
-            failure = True
+    return failed
 
+
+async def shutdown():
     logger.info("[shutdown_initiated]")
+
+    # Stop the API first before shutting down remaining of the service, so the API doesn't serve in invalid states
+    try:
+        await stop_api()
+    except Exception:
+        logger.exception("[unexpected_stop_api_error]")
+
     results = await asyncio.gather(unregister_sensors(), unregister_mqtt(), return_exceptions=True)
     for result in results:
         if isinstance(result, Exception):
-            failure = True
-            logger.error(f"[error_during_shutdown]: {result}")
-
-    logger.info("[service_stopped]")
-
-    if failure:
-        exit(1)
+            logger.error("[error_during_shutdown]", exc_info=result)
 
 
 def missing_config_field(entity, field, config):
@@ -183,7 +198,7 @@ async def start_api():
     try:
         await api.start()
     except SocketBindException as e:
-        logger.error(f"[socket_bind_error] reason=[{e}] check=[Is the service already running?]")
+        logger.error(f"[socket_bind_error] result=[exiting] reason=[{e}] check=[Is the service already running?]")
         print(f"You can try removing `{paths.API_SOCKET}` if you are absolutely sure the service is not running.")
         raise APINotStarted
     except ServiceAlreadyRunning:
@@ -194,3 +209,10 @@ async def start_api():
         print("The service runs restricted under different user. "
               f"You can try removing `{paths.API_SOCKET}` if you are absolutely sure the service is not running.")
         raise APINotStarted
+
+
+async def stop_api():
+    try:
+        await api.stop()
+    except Exception:
+        logger.exception("[unexpected_api_stop_error]")
