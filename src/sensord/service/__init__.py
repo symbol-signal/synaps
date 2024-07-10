@@ -12,7 +12,7 @@ from sensation.common import SensorType
 from sensord.common.socket import SocketBindException
 from sensord.service import api, mqtt, paths, sen0395, log
 from sensord.service.err import UnknownSensorType, MissingConfigurationField, AlreadyRegistered, InvalidConfiguration, \
-    ServiceAlreadyRunning, APINotStarted
+    ServiceAlreadyRunning, APINotStarted, ServiceNotStarted, ErrorDuringShutdown
 from sensord.service.paths import ConfigFileNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -41,8 +41,7 @@ def cli(log_file_level):
     try:
         asyncio.run(run_service())
         logger.info("[service_stopped]")
-    except APINotStarted:
-        # Check start_api() function raising this err for details
+    except (APINotStarted, ServiceNotStarted, ErrorDuringShutdown):
         exit(1)
     except Exception:
         logger.exception("[service_failed]")
@@ -55,12 +54,18 @@ async def run_service():
 
     register_signal_handlers()
 
-    init_success = await initialize()
+    init_success = await initialize()  # Throws APINotStarted
 
     if init_success:
         await shutdown_event.wait()
 
-    await shutdown()
+    shutdown_success = await shutdown()
+
+    if not init_success:
+        raise ServiceNotStarted
+
+    if not shutdown_success:
+        raise ErrorDuringShutdown
 
 
 async def initialize():
@@ -70,28 +75,33 @@ async def initialize():
     # Continue with init after API started successfully
     results = await asyncio.gather(init_mqtt(), init_sensors(), return_exceptions=True)
 
-    failed = False
+    success = True
     for result in results:
         if isinstance(result, Exception):
             logger.error("[error_during_init]", exc_info=result)
-            failed = True
+            success = False
 
-    return failed
+    return success
 
 
 async def shutdown():
     logger.info("[shutdown_initiated]")
 
+    success = True
     # Stop the API first before shutting down remaining of the service, so the API doesn't serve in invalid states
     try:
         await stop_api()
     except Exception:
+        success = False
         logger.exception("[unexpected_stop_api_error]")
 
     results = await asyncio.gather(unregister_sensors(), unregister_mqtt(), return_exceptions=True)
     for result in results:
         if isinstance(result, Exception):
+            success = False
             logger.error("[error_during_shutdown]", exc_info=result)
+
+    return success
 
 
 def missing_config_field(entity, field, config):

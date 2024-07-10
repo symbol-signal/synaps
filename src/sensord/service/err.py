@@ -6,6 +6,14 @@ class APINotStarted(SensordException):
     pass
 
 
+class ServiceNotStarted(SensordException):
+    pass
+
+
+class ErrorDuringShutdown(SensordException):
+    pass
+
+
 class ServiceAlreadyRunning(SensordException):
     pass
 
