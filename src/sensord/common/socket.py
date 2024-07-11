@@ -4,6 +4,7 @@ import logging
 import os
 import socket
 import stat
+from asyncio import DatagramProtocol
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
@@ -40,16 +41,19 @@ class SocketServerStoppedAlready(SocketServerException):
     pass
 
 
-class SocketServerAsync(abc.ABC):
+class SocketServerAsync(abc.ABC, DatagramProtocol):
 
     def __init__(self, socket_path: Path, *, allow_ping=False):
         self._socket_path = socket_path
         self._allow_ping = allow_ping
-        self._server = None
+        self._transport = None
 
     async def start(self):
+        loop = asyncio.get_running_loop()
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         try:
-            self._server = await asyncio.start_unix_server(self._handle_client, path=str(self._socket_path))
+            sock.bind(str(self._socket_path))
+            self._transport, _ = await loop.create_datagram_endpoint(lambda: self, sock=sock)
         except OSError as e:
             raise SocketBindException(self._socket_path) from e
 
@@ -57,14 +61,10 @@ class SocketServerAsync(abc.ABC):
         os.chmod(self._socket_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP)
         log.info('[server_started]')
 
-    async def serve(self):
-        if not self._server:
-            raise RuntimeError("Server not started. Call 'start()' before 'serve()'.")
-        async with self._server:
-            await self._server.serve_forever()
+    def datagram_received(self, data, addr):
+        asyncio.create_task(self._handle_datagram(data, addr))
 
-    async def _handle_client(self, reader, writer):
-        data = await reader.read(RECV_BUFFER_LENGTH)
+    async def _handle_datagram(self, data, addr):
         if not data:
             return
 
@@ -76,18 +76,10 @@ class SocketServerAsync(abc.ABC):
 
         if resp_body:
             try:
-                writer.write(resp_body.encode())
-                await writer.drain()
-            except asyncio.CancelledError:
-                raise
+                self._transport.sendto(resp_body.encode(), addr)
             except OSError as e:
-                if e.errno == 111:
-                    log.warning(f"[client_response_timeout] detail=[{e}]")
                 if e.errno == 90:
                     log.error(f"[server_response_payload_too_large] length=[{len(resp_body.encode())}]")
-
-        writer.close()
-        await writer.wait_closed()
 
     @abc.abstractmethod
     async def handle(self, req_body):
@@ -97,14 +89,13 @@ class SocketServerAsync(abc.ABC):
         """
 
     async def stop(self):
-        if not self._server:
+        if not self._transport:
             return
 
         try:
-            self._server.close()
-            await self._server.wait_closed()
+            self._transport.close()
         finally:
-            self._server = None
+            self._transport = None
             if os.path.exists(self._socket_path):
                 os.remove(self._socket_path)
 

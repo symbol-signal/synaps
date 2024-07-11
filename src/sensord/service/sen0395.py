@@ -56,6 +56,7 @@ async def _init_sensor(config):
             handler.observers.append(
                 lambda presence: mqtt.send_presence_changed_event(conf['broker'], conf['topic'], s.sensor_id, presence))
 
+    # TODO Handling exceptions from start methods to not prevent registration
     if config.get('enabled'):
         s.start_reading()
 

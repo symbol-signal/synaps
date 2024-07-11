@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -170,14 +171,10 @@ class APISen0395Status(APIMethod):
     def method(self):
         return 'sen0395.status'
 
-    def handle(self, params):
+    async def handle(self, params):
         sensors = _get_sensors(params.get('name'))
-
-        statuses = []
-        for sensor in sensors:
-            statuses.append(sensor.status())
-
-        return SensorStatuses(statuses).serialize()
+        statuses = await asyncio.gather(*(sensor.status() for sensor in sensors))
+        return SensorStatuses(list(statuses)).serialize()
 
 
 class APISen0395Reading(APIMethod):
@@ -239,7 +236,7 @@ class APIServer(SocketServerAsync):
             return e.create_response(request_id)
 
         try:
-            result = method.handle(params)
+            result = await method.handle(params)
             return _resp_ok(result, request_id)
         except _ApiError as e:
             return e.create_response(request_id)
