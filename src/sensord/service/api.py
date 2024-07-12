@@ -177,30 +177,33 @@ class APISen0395Status(APIMethod):
         return SensorStatuses(list(statuses)).serialize()
 
 
+async def set_reading(sensor, enabled):
+    if enabled:
+        await sensor.clear_buffer()
+        sensor.start_reading()
+    else:
+        await sensor.stop_reading()
+
+    return await sensor.status()
+
+
 class APISen0395Reading(APIMethod):
 
     @property
     def method(self):
         return 'sen0395.reading'
 
-    def handle(self, params):
+    async def handle(self, params):
         sensors = _get_sensors(params.get('name'))
 
         if 'enabled' not in params:
             raise _missing_field_error('enabled')
 
         enabled = params['enabled']
-        statuses = []
-        for sensor in sensors:
-            if enabled:
-                sensor.clear_buffer()
-                sensor.start_reading()
-            else:
-                sensor.stop_reading()
 
-            statuses.append(sensor.status())
+        statuses = await asyncio.gather(*(set_reading(sensor, enabled) for sensor in sensors))
 
-        return SensorStatuses(statuses).serialize()
+        return SensorStatuses(list(statuses)).serialize()
 
 
 DEFAULT_METHODS = (APISen0395Command(), APISen0395Configure(), APISen0395Status(), APISen0395Reading())
