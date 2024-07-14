@@ -112,7 +112,7 @@ class APISen0395Command(APIMethod):
     def method(self):
         return 'sen0395.command'
 
-    def handle(self, params):
+    async def handle(self, params):
         sensors = _get_sensors(params.get('name'))
 
         cmd = Command.from_value(params['command'])
@@ -122,10 +122,12 @@ class APISen0395Command(APIMethod):
 
         args = params.get('args') or ()
 
-        responses = []
-        for sensor in sensors:
-            cmd_resp = sensor.send_command(cmd, *args)
-            responses.append(SensorCommandResponse(sensor.sensor_id, cmd_resp).serialize())
+        command_responses = await asyncio.gather(*(sensor.send_command(cmd, *args) for sensor in sensors))
+
+        responses = [
+            SensorCommandResponse(sensor.sensor_id, cmd_resp).serialize()
+            for sensor, cmd_resp in zip(sensors, command_responses)
+        ]
 
         return {"sensor_command_responses": responses}
 
@@ -140,7 +142,7 @@ class APISen0395Configure(APIMethod):
     def method(self):
         return 'sen0395.configure'
 
-    def handle(self, params):
+    async def handle(self, params):
         sensors = _get_sensors(params.get('name'))
 
         cmd = Command.from_value(params['command'])
@@ -153,10 +155,12 @@ class APISen0395Configure(APIMethod):
 
         args = params.get('args') or ()
 
-        responses = []
-        for sensor in sensors:
-            config_chain_resp = sensor.configure(cmd, *args)
-            responses.append(SensorConfigChainResponse(sensor.sensor_id, config_chain_resp).serialize())
+        config_responses = await asyncio.gather(*(sensor.configure(cmd, *args) for sensor in sensors))
+
+        responses = [
+            SensorConfigChainResponse(sensor.sensor_id, resp).serialize()
+            for sensor, resp in zip(sensors, config_responses)
+        ]
 
         return {"sensor_config_chain_responses": responses}
 

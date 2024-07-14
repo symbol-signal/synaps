@@ -94,7 +94,9 @@ def service_call(func):
                 console.print(f"[bold red]Access Denied: [/bold red]{e}")
             except ServiceException as e:
                 console.print(f"[bold red]Service Error: [/bold red]{e}")
+
     return wrapper
+
 
 @sen0395.command()
 @click.option('--name', help='The name of the specific sensor to get the status.')
