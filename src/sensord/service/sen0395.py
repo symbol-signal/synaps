@@ -40,7 +40,8 @@ def validate_config(config):
 
 
 async def _init_sensor(config):
-    serial_con = serialio.serial_for_url(config['port'], 115200)
+    serial_con = serialio.serial_for_url(config['port'], 115200, timeout=1)
+    serial_con.host = 'fake'
     s = SensorAsync(config['name'], serial_con)
     await serial_con.open()
 
