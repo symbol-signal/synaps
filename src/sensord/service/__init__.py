@@ -13,7 +13,7 @@ from sensord.common.socket import SocketBindException
 from sensord.service import api, mqtt, paths, sen0395, log
 from sensord.service.err import UnknownSensorType, MissingConfigurationField, AlreadyRegistered, InvalidConfiguration, \
     ServiceAlreadyRunning, APINotStarted, ServiceNotStarted, ErrorDuringShutdown
-from sensord.service.paths import ConfigFileNotFoundError
+from sensord.service.paths import ConfigFileNotFoundError, MQTT_CONFIG_FILE, SENSORS_CONFIG_FILE
 
 logger = logging.getLogger(__name__)
 
@@ -116,16 +116,20 @@ def missing_mqtt_config_field(field, config):
     missing_config_field('mqtt_broker', field, config)
 
 
-async def init_mqtt():
-    try:
-        config_file = paths.lookup_mqtt_config_file()
-    except ConfigFileNotFoundError:
-        return
+async def read_config_file(filename):
+    config_file = paths.lookup_file_in_config_path(filename)
 
-    logger.info(f"[loading_config_file] type=[mqtt] file=[{config_file}]")
+    logger.info(f"[loading_config_file] file=[{config_file}]")
     async with aiofiles.open(config_file, 'rb') as f:
         content = await f.read()
-    config = tomli.loads(content.decode())
+    return tomli.loads(content.decode())
+
+
+async def init_mqtt():
+    try:
+        config = await read_config_file(MQTT_CONFIG_FILE)
+    except ConfigFileNotFoundError:
+        return
 
     brokers = config.get('broker')
     if not brokers:
@@ -150,24 +154,17 @@ async def unregister_mqtt():
 
 async def init_sensors():
     try:
-        config_file = paths.lookup_sensors_config_file()
+        config = await read_config_file(SENSORS_CONFIG_FILE)
     except ConfigFileNotFoundError as e:
         logger.warning(f"[no_sensors_config_file] detail=[{e}]")
         return
 
-    logger.info(f"[loading_config_file] type=[sensors] file=[{config_file}]")
-    async with aiofiles.open(config_file, 'rb') as f:
-        content = await f.read()
-    config = tomli.loads(content.decode())
     sensors = config.get('sensor')
 
-    if sensors:
-        await register_sensors(sensors)
-    else:
-        logger.warning('[no_sensors_loaded] detail=[No sensors configured in the config file: %s]', config_file)
+    if not sensors:
+        logger.warning('[no_sensors_loaded] detail=[No sensors configured in the config file: %s]', SENSORS_CONFIG_FILE)
+        return
 
-
-async def register_sensors(sensors):
     register_sensor_tasks = [register_sensor(sensor) for sensor in sensors]
     await asyncio.gather(*register_sensor_tasks)
 

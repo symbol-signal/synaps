@@ -21,6 +21,7 @@ API_SOCKET = 'sensord.sock'
 CONFIG_DIR = 'sensord'
 SENSORS_CONFIG_FILE = 'sensors.toml'
 MQTT_CONFIG_FILE = 'mqtt.toml'
+WS_CONFIG_FILE = 'ws.toml'
 
 
 class ConfigFileNotFoundError(SensordException, FileNotFoundError):
@@ -47,6 +48,10 @@ def lookup_sensors_config_file():
 
 def lookup_mqtt_config_file():
     return lookup_file_in_config_path(MQTT_CONFIG_FILE)
+
+
+def lookup_ws_config_file():
+    return lookup_file_in_config_path(WS_CONFIG_FILE)
 
 
 def lookup_file_in_config_path(file) -> Path:
@@ -163,8 +168,10 @@ def socket_path(socket_name: str) -> Path:
 
     return socket_dir() / socket_name
 
+
 def api_socket_path():
     return socket_path(API_SOCKET)
+
 
 def search_api_socket() -> Optional[Path]:
     """
