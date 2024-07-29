@@ -46,6 +46,7 @@ async def send_presence_changed_event(name: str, sensor_id: SensorId, presence: 
 
 
 async def handle_connection(name: str, uri: str):
+    logger.info(f"[websocket_connecting] server=[{name}] uri=[{uri}]")
     async for websocket in websockets.connect(uri):
         logger.debug(f"[websocket_connected] server=[{name}] uri=[{uri}]")
         _servers[name] = websocket

@@ -10,10 +10,10 @@ import tomli
 
 from sensation.common import SensorType
 from sensord.common.socket import SocketBindException
-from sensord.service import api, mqtt, paths, sen0395, log
+from sensord.service import api, mqtt, paths, sen0395, log, ws
 from sensord.service.err import UnknownSensorType, MissingConfigurationField, AlreadyRegistered, InvalidConfiguration, \
     ServiceAlreadyRunning, APINotStarted, ServiceNotStarted, ErrorDuringShutdown
-from sensord.service.paths import ConfigFileNotFoundError, MQTT_CONFIG_FILE, SENSORS_CONFIG_FILE
+from sensord.service.paths import ConfigFileNotFoundError, MQTT_CONFIG_FILE, SENSORS_CONFIG_FILE, WS_CONFIG_FILE
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +57,7 @@ async def run_service():
     init_success = await initialize()  # Throws APINotStarted
 
     if init_success:
+        logger.info("[service_started_successfully]")
         await shutdown_event.wait()
 
     shutdown_success = await shutdown()
@@ -73,7 +74,7 @@ async def initialize():
     await start_api()  # Raising exceptions if not started
 
     # Continue with init after API started successfully
-    results = await asyncio.gather(init_mqtt(), init_sensors(), return_exceptions=True)
+    results = await asyncio.gather(init_mqtt(), init_ws(), init_sensors(), return_exceptions=True)
 
     success = True
     for result in results:
@@ -150,6 +151,33 @@ async def register_broker(broker):
 
 async def unregister_mqtt():
     await mqtt.unregister_all()
+
+
+async def init_ws():
+    try:
+        config = await read_config_file(WS_CONFIG_FILE)
+    except ConfigFileNotFoundError:
+        return
+
+    servers = config.get('server')
+    if not servers:
+        return
+
+    register_client_tasks = [register_client(server) for server in servers]
+    await asyncio.gather(*register_client_tasks)
+
+
+async def register_client(server):
+    try:
+        await ws.register(**server)
+    except MissingConfigurationField as e:
+        missing_sensor_config_field(e.field, server)
+    except AlreadyRegistered:
+        logger.warning(f"[invalid_ws_server] reason=[duplicated_server] config=[{server}]")
+
+
+async def unregister_ws():
+    await ws.unregister_all()
 
 
 async def init_sensors():

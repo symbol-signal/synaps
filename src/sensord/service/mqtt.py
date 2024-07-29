@@ -74,6 +74,7 @@ async def register(**config):
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
 
+    logger.info(f"[mqtt_connecting] broker=[{name}] host=[{host}]")
     await client.connect(host=host)
 
     _brokers[name] = client

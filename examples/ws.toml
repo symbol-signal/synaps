@@ -1,0 +1,6 @@
+# This is an example WebSocket configuration file
+
+# Configuration for the first WebSocket server
+[[server]]
+name = "local-rpi"
+uri = "ws://127.0.0.1:8080"
