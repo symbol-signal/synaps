@@ -74,6 +74,7 @@ async def initialize():
     await start_api()  # Raising exceptions if not started
 
     # Continue with init after API started successfully
+    # TODO Init sensors last?
     results = await asyncio.gather(init_mqtt(), init_ws(), init_sensors(), return_exceptions=True)
 
     success = True
@@ -96,7 +97,7 @@ async def shutdown():
         success = False
         logger.exception("[unexpected_stop_api_error]")
 
-    results = await asyncio.gather(unregister_sensors(), unregister_mqtt(), return_exceptions=True)
+    results = await asyncio.gather(unregister_sensors(), unregister_mqtt(), unregister_ws(), return_exceptions=True)
     for result in results:
         if isinstance(result, Exception):
             success = False

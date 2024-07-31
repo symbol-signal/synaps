@@ -59,7 +59,7 @@ class SocketServerAsync(abc.ABC, DatagramProtocol):
 
         # Allow users from the same group to communicate with the server
         os.chmod(self._socket_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP)
-        log.info('[server_started]')
+        log.info('[socket_server_started]')
 
     def datagram_received(self, data, addr):
         asyncio.create_task(self._handle_datagram(data, addr))
@@ -99,7 +99,7 @@ class SocketServerAsync(abc.ABC, DatagramProtocol):
             if os.path.exists(self._socket_path):
                 os.remove(self._socket_path)
 
-        log.info('[server_stopped]')
+        log.info('[socket_server_stopped]')
 
 
 class Error(Enum):
