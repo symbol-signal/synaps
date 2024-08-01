@@ -14,16 +14,16 @@ logger = logging.getLogger(__name__)
 
 _clients: Dict[str, Tuple['WSClient', Task]] = {}
 
-_missing_servers: Set[str] = set()
+_missing_endpoints: Set[str] = set()
 
 REQUIRED_FIELDS = ['name', 'uri']
 
 
-def get_client(server_name) -> 'WSClient':
+def get_client(endpoint_name) -> 'WSClient':
     try:
-        return _clients[server_name][0]
+        return _clients[endpoint_name][0]
     except KeyError:
-        raise ValueError(f"Client for {server_name} server not registered")
+        raise ValueError(f"Client for {endpoint_name} endpoint not registered")
 
 
 class WSClient:
@@ -35,20 +35,20 @@ class WSClient:
         self.connected_event = asyncio.Event()
 
     async def handle_connection(self):
-        logger.info(f"[websocket_connecting] server=[{self.name}] uri=[{self.uri}]")
+        logger.info(f"[websocket_connecting] endpoint=[{self.name}] uri=[{self.uri}]")
         async for websocket in websockets.connect(self.uri):
-            logger.info(f"[websocket_connected] server=[{self.name}] uri=[{self.uri}]")
+            logger.info(f"[websocket_connected] endpoint=[{self.name}] uri=[{self.uri}]")
             self.websocket = websocket
             self.connected_event.set()
 
             try:
                 await self.print_message_loop()
             except websockets.ConnectionClosed:
-                logger.info(f"[websocket_disconnected] server=[{self.name}] uri=[{self.uri}]")
+                logger.info(f"[websocket_disconnected] endpoint=[{self.name}] uri=[{self.uri}]")
                 if self.closed:
                     return
 
-            logger.info(f"[websocket_reconnecting] server=[{self.name}] uri=[{self.uri}]")
+            logger.info(f"[websocket_reconnecting] endpoint=[{self.name}] uri=[{self.uri}]")
             self.connected_event.clear()
             self.websocket = None
 
@@ -61,7 +61,7 @@ class WSClient:
 
     async def print_message_loop(self):
         async for message in self.websocket:
-            logger.debug(f"[websocket_message_received] server=[{self.name}] message=[{message}]")
+            logger.debug(f"[websocket_message_received] endpoint=[{self.name}] message=[{message}]")
 
     async def send_message(self, message, timeout=None):
         if timeout:
@@ -81,26 +81,6 @@ class WSClient:
         return True
 
 
-async def send_presence_changed_event(server_name: str, sensor_id: SensorId, presence: bool):
-    client = get_client(server_name)
-    if not client:
-        if server_name not in _missing_servers:
-            _missing_servers.add(server_name)
-            logger.warning(f"[websocket_server_missing] name=[{server_name}]")
-        return
-
-    _missing_servers.discard(server_name)
-
-    payload = {
-        "sensorId": f"{sensor_id.sensor_type.value}/{sensor_id.sensor_name}",
-        "event": "presence_change",
-        "eventAt": datetime.now(timezone.utc).isoformat(),
-        "eventData": {"presence": presence},
-    }
-    await client.send_message(json.dumps(payload))
-    logger.debug(f"[websocket_message_sent] server=[{server_name}] message=[{payload}]")
-
-
 async def register(**config):
     for required_field in REQUIRED_FIELDS:
         if required_field not in config or not config[required_field]:
@@ -113,19 +93,39 @@ async def register(**config):
         raise AlreadyRegistered
 
     client = WSClient(name, uri)
-    server_task = asyncio.create_task(client.handle_connection())
-    _clients[name] = (client, server_task)
+    endpoint_task = asyncio.create_task(client.handle_connection())
+    _clients[name] = (client, endpoint_task)
     # Wait for the connection to prevent lost messages during init
     wait_sec = 1
     if not await client.wait_connected(wait_sec):
-        logger.warning(f"[websocket_not_connected_during_init] wait_time=[{wait_sec}] server=[{name}] uri=[{uri}]")
+        logger.warning(f"[websocket_not_connected_during_init] wait_time=[{wait_sec}] endpoint=[{name}] uri=[{uri}]")
 
 
 async def unregister_all():
     for name, (client, task) in list(_clients.items()):
         if not client.closed:
-            logger.info(f"[websocket_closing_connection] server=[{name}]")
+            logger.info(f"[websocket_closing_connection] endpoint=[{name}]")
             if not await client.close():
                 task.cancel()
                 await task
         del _clients[name]
+
+
+async def send_presence_changed_event(endpoint_name: str, sensor_id: SensorId, presence: bool):
+    client = get_client(endpoint_name)
+    if not client:
+        if endpoint_name not in _missing_endpoints:
+            _missing_endpoints.add(endpoint_name)
+            logger.warning(f"[websocket_endpoint_missing] name=[{endpoint_name}]")
+        return
+
+    _missing_endpoints.discard(endpoint_name)
+
+    payload = {
+        "sensorId": f"{sensor_id.sensor_type.value}/{sensor_id.sensor_name}",
+        "event": "presence_change",
+        "eventAt": datetime.now(timezone.utc).isoformat(),
+        "eventData": {"presence": presence},
+    }
+    await client.send_message(json.dumps(payload))
+    logger.debug(f"[websocket_message_sent] endpoint=[{endpoint_name}] message=[{payload}]")

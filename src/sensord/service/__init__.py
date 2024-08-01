@@ -160,11 +160,11 @@ async def init_ws():
     except ConfigFileNotFoundError:
         return
 
-    servers = config.get('server')
-    if not servers:
+    endpoints = config.get('endpoint')
+    if not endpoints:
         return
 
-    register_client_tasks = [register_client(server) for server in servers]
+    register_client_tasks = [register_client(server) for server in endpoints]
     await asyncio.gather(*register_client_tasks)
 
 
