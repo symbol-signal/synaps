@@ -30,10 +30,11 @@ The distribution package consists of two main components.
   - [MQTT](#mqtt)
     - [Broker Configuration](#broker-configuration)
     - [Payload](#payload)
+    - [Sensor Configuration](#sensor-configuration)
   - [WebSocket](#websocket)
     - [Endpoint Configuration](#endpoint-configuration)
     - [Payload](#payload-1)
-    - [Sensor Configuration](#sensor-configuration)
+    - [Sensor Configuration](#sensor-configuration-1)
   - [Systemd](#systemd)
 - [Sensor Control CLI](#sensor-control-cli)
   - [Subcommands](#subcommands)
@@ -109,6 +110,20 @@ The schema of the MQTT message payload is defined in the [presence-message-schem
   }
 }
 ```
+#### Sensor Configuration
+A sensor must explicitly define an MQTT broker for the notification to be sent. 
+Multiple brokers can be defined to send notifications to different MQTT brokers:
+```toml
+[[sensor]]
+# Sensor configuration is here
+[[sensor.mqtt]]
+broker = "local-rpi"  # Broker name defined as `broker.name` in the `mqtt.toml` file
+topic = "living_room/desk/presence"  # Topic where the notification events are sent
+
+[[sensor.mqtt]]
+broker = "cloud-broker"  # Another broker name defined in the `mqtt.toml` file
+topic = "sensors/living_room/desk/presence"  # Topic on the second broker
+```
 
 ### WebSocket
 #### Endpoint Configuration
@@ -128,20 +143,17 @@ The schema of the WebSocket message payload is defined in the [presence-message-
   }
 }
 ```
-
 #### Sensor Configuration
-A sensor must explicitly define an MQTT broker for the notification to be sent. 
-Multiple brokers can be defined to send notifications to different MQTT brokers:
+A sensor must explicitly define a WebSocket endpoint for the notification to be sent. 
+Multiple endpoints can be defined to send notifications to different WebSocket servers:
 ```toml
 [[sensor]]
 # Sensor configuration is here
-[[sensor.mqtt]]
-broker = "local-rpi"  # Broker name defined as `broker.name` in the `mqtt.toml` file
-topic = "living_room/desk/presence"  # Topic where the notification events are sent
+[[sensor.ws]]
+endpoint = "local-rpi"  # Endpoint name defined as `endpoint.name` in the `ws.toml` file
 
-[[sensor.mqtt]]
-broker = "cloud-broker"  # Another broker name defined in the `mqtt.toml` file
-topic = "sensors/living_room/desk/presence"  # Topic on the second broker
+[[sensor.ws]]
+endpoint = "cloud-ws"  # Another endpoint name defined in the `ws.toml` file
 ```
 
 ### Systemd
