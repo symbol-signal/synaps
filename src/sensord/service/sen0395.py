@@ -4,7 +4,7 @@ from typing import List, Optional
 import serialio
 
 from sensation.sen0395 import Sensor, SensorAsync, PresenceHandlerAsync
-from sensord.service import mqtt
+from sensord.service import mqtt, ws
 from sensord.service.err import AlreadyRegistered, MissingConfigurationField, InvalidConfiguration
 
 log = logging.getLogger(__name__)
@@ -28,6 +28,7 @@ def validate_config(config):
     for required_field in REQUIRED_FIELDS:
         if required_field not in config:
             raise MissingConfigurationField(required_field)
+
     if mqtt_brokers := config.get('mqtt'):
         if not isinstance(mqtt_brokers, list):
             raise InvalidConfiguration("`mqtt` field must be a list")
@@ -37,6 +38,14 @@ def validate_config(config):
                 raise MissingConfigurationField('mqtt.broker')
             if 'topic' not in broker_config:
                 raise MissingConfigurationField('mqtt.topic')
+
+    if ws_configs := config.get('ws'):
+        if not isinstance(ws_configs, list):
+            raise InvalidConfiguration("`ws` field must be a list")
+
+        for ws_config in ws_configs:
+            if 'endpoint' not in ws_config:
+                raise MissingConfigurationField('ws.endpoint')
 
 
 async def _init_sensor(config):
@@ -53,9 +62,14 @@ async def _init_sensor(config):
             lambda presence: log.debug(f"[presence_change] sensor=[{s.sensor_id}] presence=[{presence}]"))
 
     if mqtt_brokers := config.get("mqtt"):
-        for conf in mqtt_brokers:
+        for mc in mqtt_brokers:
             handler.observers.append(
-                lambda presence: mqtt.send_presence_changed_event(conf['broker'], conf['topic'], s.sensor_id, presence))
+                lambda presence: mqtt.send_presence_changed_event(mc['broker'], mc['topic'], s.sensor_id, presence))
+
+    if ws_endpoints := config.get("ws"):
+        for wc in ws_endpoints:
+            handler.observers.append(
+                lambda presence: ws.send_presence_changed_event(wc['endpoint'], s.sensor_id, presence))
 
     # TODO Handling exceptions from start methods to not prevent registration
     if config.get('enabled'):

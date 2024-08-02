@@ -68,8 +68,9 @@ class WSClient:
             await self.wait_connected(timeout)
         if self.websocket:
             await self.websocket.send(message)
+            logger.debug(f"[websocket_message_sent] endpoint=[{self.name}] message=[{message}]")
         else:
-            logger.info(f"[websocket_message_unsent] reason=[disconnected] message=[{message}]")
+            logger.warning(f"[websocket_message_not_sent] reason=[disconnected] message=[{message}]")
 
     async def close(self):
         self.closed = True
@@ -128,4 +129,3 @@ async def send_presence_changed_event(endpoint_name: str, sensor_id: SensorId, p
         "eventData": {"presence": presence},
     }
     await client.send_message(json.dumps(payload))
-    logger.debug(f"[websocket_message_sent] endpoint=[{endpoint_name}] message=[{payload}]")
