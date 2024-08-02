@@ -13,4 +13,4 @@ This distribution package consists of two main components:
 
 """
 
-__version__ = "0.1.4"
+__version__ = "0.2.0"
