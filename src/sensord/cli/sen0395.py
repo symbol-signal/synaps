@@ -44,7 +44,7 @@ def reset(name):
 @click.argument('disappearance_delay', type=click.IntRange(0, 65535))
 @click.option('--name', help='The name of the specific sensor to configure latency.')
 def latency(detection_delay, disappearance_delay, name):
-    """Configure detection and disappearance latencies"""
+    """Configure detection and disappearance latencies in 25ms unit"""
     delay_detection_ms = detection_delay * 25
     delay_disappearance_ms = disappearance_delay * 25
     console = Console()
@@ -65,7 +65,7 @@ def latency(detection_delay, disappearance_delay, name):
 @click.argument('pard_e', type=int, required=False, default=None)
 @click.option('--name', help='The name of the specific sensor to configure detection range.')
 def detrange(para_s, para_e, parb_s, parb_e, parc_s, parc_e, pard_s, pard_e, name):
-    """Configure detection ranges"""
+    """Configure detection ranges in 15cm unit"""
     params = [p for p in (para_s, para_e, parb_s, parb_e, parc_s, parc_e, pard_s, pard_e) if p is not None]
 
     try:
