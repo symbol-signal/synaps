@@ -1,7 +1,6 @@
 # Sensord
 The distribution package consists of two main components.
 
-# Table of Contents
 **Sensor Service**
 - Executable: `sensord`
 - Manages IoT devices and sensors using the [Sensation library](https://github.com/symbol-signal/sensation).
@@ -15,6 +14,7 @@ The distribution package consists of two main components.
 - Allows users to start, stop, configure, and monitor sensors through the command line.
 - Offers a convenient way to manage the Sensor Service and connected devices.
 
+## Table of Contents
 - [Installation](#installation)
   - [Installing for a given user](#installing-for-a-given-user)
   - [Installing system-wide](#installing-system-wide)
