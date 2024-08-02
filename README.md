@@ -1,6 +1,7 @@
 # Sensord
 The distribution package consists of two main components.
 
+# Table of Contents
 **Sensor Service**
 - Executable: `sensord`
 - Manages IoT devices and sensors using the [Sensation library](https://github.com/symbol-signal/sensation).
@@ -13,6 +14,30 @@ The distribution package consists of two main components.
 - Provides a command-line tool for controlling and interacting with the Sensor Service.
 - Allows users to start, stop, configure, and monitor sensors through the command line.
 - Offers a convenient way to manage the Sensor Service and connected devices.
+
+- [Installation](#installation)
+  - [Installing for a given user](#installing-for-a-given-user)
+  - [Installing system-wide](#installing-system-wide)
+- [Sensord service](#sensord-service)
+  - [Configuration Directory](#configuration-directory)
+  - [Sensors](#sensors)
+    - [Configuration](#configuration)
+    - [SEN0395](#sen0395)
+      - [Mandatory fields](#mandatory-fields)
+      - [Optional fields](#optional-fields)
+      - [Section [[sensor.mqtt]]](#section-sensormqtt-optional)
+      - [Section [[sensor.ws]]](#section-sensorws-optional)
+  - [MQTT](#mqtt)
+    - [Broker Configuration](#broker-configuration)
+    - [Payload](#payload)
+  - [WebSocket](#websocket)
+    - [Endpoint Configuration](#endpoint-configuration)
+    - [Payload](#payload-1)
+    - [Sensor Configuration](#sensor-configuration)
+  - [Systemd](#systemd)
+- [Sensor Control CLI](#sensor-control-cli)
+  - [Subcommands](#subcommands)
+    - [SEN0395](#sen0395-1)
 
 ## Installation
 The recommended way of installing this service is using [pipx](https://pipx.pypa.io/stable/), 
@@ -60,8 +85,11 @@ See the [example configuration file](examples/sensors.toml).
 - `print_presence` (default: `true`): Determines whether presence changes should be printed to stdout and logged.
 
 ###### Section [[sensor.mqtt]] (optional)
- - `broker`: The name of the MQTT broker to which the sensor should publish presence data.
+ - `broker`: The configured name of the MQTT broker to which the sensor should publish presence data.
  - `topic`: The MQTT topic under which the presence data should be published.
+
+###### Section [[sensor.ws]] (optional)
+ - `endpoint`: The configured name of the WS endpoint to which the sensor should publish presence data.
 
 ### MQTT
 #### Broker Configuration
@@ -69,7 +97,26 @@ Presence change events of a sensor can be sent as an MQTT message to an MQTT bro
 defined in the `mqtt.toml` configuration file. See the [example configuration file](examples/mqtt.toml).
 
 #### Payload
-The schema of the MQTT message payload is defined in the [presence-mqtt-schema.json](DOC/presence-message-schema.json) file.
+The schema of the MQTT message payload is defined in the [presence-message-schema.json](DOC/presence-message-schema.json) file.
+##### Example
+```json
+{
+  "sensorId": "sen0395/desk",
+  "event": "presence_change",
+  "eventAt": "2024-05-30T06:25:13.929544+00:00",
+  "eventData": {
+    "presence": false
+  }
+}
+```
+
+### WebSocket
+#### Endpoint Configuration
+Presence change events of a sensor can be sent as a WebSocket message to a WebSocket server.
+For this, an endpoint must first be defined in the `ws.toml` configuration file. See the [example configuration file](examples/ws.toml).
+
+#### Payload
+The schema of the WebSocket message payload is defined in the [presence-message-schema.json](DOC/presence-message-schema.json) file.
 ##### Example
 ```json
 {
