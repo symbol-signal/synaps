@@ -72,7 +72,7 @@ according to the [XDG specification](https://specifications.freedesktop.org/base
 ### Sensors
 #### Configuration
 All sensors are configured in the configuration file `sensors.toml` which must be placed in the configuration directory. 
-See the [example configuration file](examples/sensors.toml).
+See the [example configuration file](examples/config/sensors.toml).
 
 ##### SEN0395
 ###### Mandatory fields
@@ -95,7 +95,7 @@ See the [example configuration file](examples/sensors.toml).
 ### MQTT
 #### Broker Configuration
 Presence change events of a sensor can be sent as an MQTT message to an MQTT broker. For this, a broker must first be
-defined in the `mqtt.toml` configuration file. See the [example configuration file](examples/mqtt.toml).
+defined in the `mqtt.toml` configuration file. See the [example configuration file](examples/config/mqtt.toml).
 
 #### Payload
 The schema of the MQTT message payload is defined in the [presence-message-schema.json](DOC/presence-message-schema.json) file.
@@ -128,7 +128,7 @@ topic = "sensors/living_room/desk/presence"  # Topic on the second broker
 ### WebSocket
 #### Endpoint Configuration
 Presence change events of a sensor can be sent as a WebSocket message to a WebSocket server.
-For this, an endpoint must first be defined in the `ws.toml` configuration file. See the [example configuration file](examples/ws.toml).
+For this, an endpoint must first be defined in the `ws.toml` configuration file. See the [example configuration file](examples/config/ws.toml).
 
 #### Payload
 The schema of the WebSocket message payload is defined in the [presence-message-schema.json](DOC/presence-message-schema.json) file.
