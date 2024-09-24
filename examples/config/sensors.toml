@@ -4,7 +4,7 @@
 # mandatory fields
 type = "sen0395"  # https://wiki.dfrobot.com/mmWave_Radar_Human_Presence_Detection_SKU_SEN0395
 name = "desk"
-port = "/dev/ttyAMA0"
+port = "serial:///dev/ttyAMA0"
 # optional fields
 enabled = true  # Automatically start reading the sensor upon startup (MQTT, presence print, etc.)
 autostart = true  # Automatically start the sensor scanning upon startup (unless already started)

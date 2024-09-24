@@ -11,3 +11,19 @@ export FLIT_USERNAME=__token__
 export FLIT_PASSWORD=
 flit publish
 ```
+
+## Raspberry OS Installation
+### Install/upgrade/uninstall with pipx (with pip 20.3.4 from (python 3.9))
+```commandline
+sudo pip install --system pipx
+sudo pipx --global install sensord
+sudo pipx --global upgrade sensord
+sudo pipx --global uninstall sensord
+```
+
+### Install with pipx globally (newest pip version (python 3.11))
+```commandline
+sudo python3 -m pip install --break-system-packages pipx  # Then logout/login
+sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install sensord
+```
+`Note: Use Debian repo pipx when upgraded to a newer version`
