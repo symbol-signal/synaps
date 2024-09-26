@@ -34,19 +34,26 @@ class SensorStatuses:
         table = Table(show_header=True, box=MINIMAL)
         table.add_column("Name")
         table.add_column("Port")
-        table.add_column("Timeout")
         table.add_column("Enabled")
         table.add_column("Scanning")
+        table.add_column("Presence")
 
         for status in self.statuses:
             reading = Text("Yes", style="green") if status.is_reading else Text("No", style="orange3")
             scanning = Text("Yes", style="green") if status.is_scanning else Text("No", style="orange3")
+            if status.presence is None:
+                presence = Text("N/A", style="dim white")
+            elif status.presence:
+                presence = Text("Detected", style="green")
+            else:
+                presence = Text("Undetected", style="orange3")
             table.add_row(
                 f"[bold blue]{status.sensor_id.sensor_name}[/bold blue]",
                 status.port,
-                str(status.timeout) if status.timeout is not None else "None",
                 reading,
-                scanning)
+                scanning,
+                presence,
+            )
 
         return table
 

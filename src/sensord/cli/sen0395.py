@@ -35,7 +35,7 @@ def stop(name):
 @sen0395.command()
 @click.option('--name', help='The name of the specific sensor to reset.')
 def reset(name):
-    """Send reset command"""
+    """Send soft reset command"""
     send_command(Command.RESET_SYSTEM, sensor_name=name)
 
 
