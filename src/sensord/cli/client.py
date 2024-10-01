@@ -1,8 +1,7 @@
 import json
 from typing import List, Dict
 
-from sensation.sen0395 import CommandResponse
-from sensord.common.sen0395 import SensorStatuses, SensorCommandResponse, SensorConfigChainResponse
+from sensord.common.sen0395 import SensorStatuses, SensorCommandResponse, SensorConfigChainResponse, SensorConfigs
 from sensord.common.socket import SocketClient, ServerResponse
 
 
@@ -66,12 +65,17 @@ class APIClient(SocketClient):
 
         return responses
 
-    def send_get_status_sen0395(self, sensor_name=None) -> List[CommandResponse]:
+    def send_get_status_sen0395(self, sensor_name=None) -> SensorStatuses:
         params = {'name': sensor_name}
         service_response = self.send_request('sen0395.status', params)
         return SensorStatuses.deserialize(service_response["result"])
 
-    def send_reading_enabled_sen0395(self, enabled, sensor_name=None) -> List[CommandResponse]:
+    def send_get_config_sen0395(self, sensor_name=None) -> SensorConfigs:
+        params = {'name': sensor_name}
+        service_response = self.send_request('sen0395.config', params)
+        return SensorConfigs.deserialize(service_response["result"])
+
+    def send_reading_enabled_sen0395(self, enabled, sensor_name=None) -> SensorStatuses:
         params = {'name': sensor_name, 'enabled': enabled}
         service_response = self.send_request('sen0395.reading', params)
         return SensorStatuses.deserialize(service_response["result"])

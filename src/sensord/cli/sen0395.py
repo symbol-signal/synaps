@@ -102,9 +102,18 @@ def service_call(func):
 @click.option('--name', help='The name of the specific sensor to get the status.')
 @service_call
 def status(client: APIClient, console: Console, name):
-    """Print status"""
+    """Print current sensor status"""
     statuses = client.send_get_status_sen0395(sensor_name=name)
     console.print(statuses)
+
+
+@sen0395.command()
+@click.option('--name', help='The name of the specific sensor to get the status.')
+@service_call
+def config(client: APIClient, console: Console, name):
+    """Print stored sensor configuration"""
+    configs = client.send_get_config_sen0395(sensor_name=name)
+    console.print(configs)
 
 
 @sen0395.command()

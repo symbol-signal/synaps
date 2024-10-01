@@ -7,7 +7,7 @@ from rich.table import Table
 from rich.text import Text
 
 from sensation.common import SensorId
-from sensation.sen0395 import SensorStatus, CommandResponse, CommandResult, ConfigChainResponse
+from sensation.sen0395 import SensorStatus, CommandResponse, CommandResult, ConfigChainResponse, SensorConfig
 
 _CMD_RES_COLOURS = {
     CommandResult.DONE: "green",
@@ -23,7 +23,7 @@ class SensorStatuses:
     statuses: List[SensorStatus]
 
     @classmethod
-    def deserialize(cls, data: Dict):
+    def deserialize(cls, data: Dict) -> 'SensorStatuses':
         statuses = [SensorStatus.deserialize(status) for status in data['statuses']]
         return cls(statuses=statuses)
 
@@ -56,6 +56,40 @@ class SensorStatuses:
             )
 
         return table
+
+@dataclass
+class SensorConfigs:
+    configs: List[SensorConfig]
+
+    @classmethod
+    def deserialize(cls, data: Dict) -> 'SensorConfigs':
+        configs = [SensorConfig.deserialize(config) for config in data['configs']]
+        return cls(configs=configs)
+
+    def serialize(self):
+        return {"configs": [config.serialize() for config in self.configs]}
+
+    def __rich__(self):
+        table = Table(show_header=True, box=MINIMAL)
+        table.add_column("Name")
+        table.add_column("Port")
+        table.add_column("Timeout")
+        table.add_column("Detection Range")
+        table.add_column("Output Delay")
+        table.add_column("Sensitivity")
+
+        for config in self.configs:
+            table.add_row(
+                f"[bold blue]{config.sensor_id.sensor_name}[/bold blue]",
+                config.port,
+                str(config.timeout),
+                str(config.detection_range),
+                str(config.output_delay),
+                str(config.sensitivity),
+            )
+
+        return table
+
 
 
 def sensor_command_responses_table(*responses):
