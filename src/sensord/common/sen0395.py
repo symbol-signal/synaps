@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from typing import List, Dict
 
-from rich.box import MINIMAL
+from rich.box import MINIMAL, ROUNDED
 from rich.console import RenderableType, Group
+from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
@@ -70,7 +71,7 @@ class SensorConfigs:
         return {"configs": [config.serialize() for config in self.configs]}
 
     def __rich__(self):
-        table = Table(show_header=True, box=MINIMAL)
+        table = Table(show_header=True, box=ROUNDED)
         table.add_column("Name")
         table.add_column("Port")
         table.add_column("Timeout")
@@ -80,16 +81,28 @@ class SensorConfigs:
 
         for config in self.configs:
             table.add_row(
-                f"[bold blue]{config.sensor_id.sensor_name}[/bold blue]",
+                f"[bold]{config.sensor_id.sensor_name}[/bold]",
                 config.port,
-                str(config.timeout),
-                f"{config.detection_range[0]} m <-> {config.detection_range[1]} m",
-                f"In: {config.output_delay[0]} sec, Out: {config.output_delay[1]} sec",
-                str(config.sensitivity),
+                str(config.timeout) if config.timeout is not None else "N/A",
+                self._format_range(config.detection_range),
+                self._format_delay(config.output_delay),
+                self._format_sensitivity(config.sensitivity),
             )
 
-        return table
+        return Panel(table, title="Sensor Configurations", border_style="green")
 
+    @staticmethod
+    def _format_range(range_tuple):
+        return f"[green]{range_tuple[0]}[/green] m <-> [yellow]{range_tuple[1]}[/yellow] m"
+
+    @staticmethod
+    def _format_delay(delay_tuple):
+        return f"In: [green]{delay_tuple[0]}[/green] s, Out: [yellow]{delay_tuple[1]}[/yellow] s"
+
+    @staticmethod
+    def _format_sensitivity(sensitivity):
+        color = "green" if sensitivity > 5 else "yellow" if sensitivity > 3 else "red"
+        return f"[{color}]{sensitivity}[/{color}]"
 
 
 def sensor_command_responses_table(*responses):
