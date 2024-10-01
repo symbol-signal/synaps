@@ -83,8 +83,8 @@ class SensorConfigs:
                 f"[bold blue]{config.sensor_id.sensor_name}[/bold blue]",
                 config.port,
                 str(config.timeout),
-                str(config.detection_range),
-                str(config.output_delay),
+                f"{config.detection_range[0]} m <-> {config.detection_range[1]} m",
+                f"In: {config.output_delay[0]} sec, Out: {config.output_delay[1]} sec",
                 str(config.sensitivity),
             )
 
