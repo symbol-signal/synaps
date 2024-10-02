@@ -9,6 +9,7 @@ import rich_click as click
 import tomli
 
 from sensation.common import SensorType
+from sensord import __version__
 from sensord.common.socket import SocketBindException
 from sensord.service import api, mqtt, paths, sen0395, log, ws
 from sensord.service.err import UnknownSensorType, MissingConfigurationField, AlreadyRegistered, InvalidConfiguration, \
@@ -32,6 +33,7 @@ async def on_signal(signal_):
 
 
 @click.command()
+@click.version_option(__version__)
 @click.option('--log-file-level', type=click.Choice(['debug', 'info', 'warning', 'error', 'critical', 'off']),
               default='info',
               help='Set the log level for file logging')

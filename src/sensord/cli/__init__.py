@@ -1,9 +1,11 @@
 import rich_click as click
 
+from sensord import __version__
 from sensord.cli.sen0395 import start, stop, reset, latency, detrange, sensitivity, status, enable, disable, config
 
 
 @click.group()
+@click.version_option(__version__)
 def cli():
     """
     Command-line tool for controlling sensord service.
