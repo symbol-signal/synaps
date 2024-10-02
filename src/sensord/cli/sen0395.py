@@ -78,6 +78,14 @@ def detrange(para_s, para_e, parb_s, parb_e, parc_s, parc_e, pard_s, pard_e, nam
     send_command(Command.DETECTION_RANGE_CONFIG, [-1] + params, sensor_name=name)
 
 
+@sen0395.command()
+@click.argument('value', type=click.IntRange(0, 9))
+@click.option('--name', help='The name of the specific sensor to configure sensitivity.')
+def sensitivity(value, name):
+    """Configure sensor sensitivity value (0-9)"""
+    send_command(Command.SET_SENSITIVITY, [value], sensor_name=name)
+
+
 def service_call(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
