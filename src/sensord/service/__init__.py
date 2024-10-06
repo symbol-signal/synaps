@@ -11,7 +11,7 @@ import tomli
 from sensation.common import SensorType
 from sensord import __version__
 from sensord.common.socket import SocketBindException
-from sensord.service import api, mqtt, paths, sen0395, log, ws
+from sensord.service import api, mqtt, paths, sen0395, log, ws, sen0311
 from sensord.service.err import UnknownSensorType, MissingConfigurationField, AlreadyRegistered, InvalidConfiguration, \
     ServiceAlreadyRunning, APINotStarted, ServiceNotStarted, ErrorDuringShutdown
 from sensord.service.paths import ConfigFileNotFoundError, MQTT_CONFIG_FILE, SENSORS_CONFIG_FILE, WS_CONFIG_FILE
@@ -224,12 +224,16 @@ async def register_sensor_by_type(config):
     if config["type"] == SensorType.SEN0395.value:
         await sen0395.register(**config)
         return
+    if config["type"] == SensorType.SEN0311.value:
+        await sen0311.register(**config)
+        return
 
     raise UnknownSensorType(config["type"])
 
 
 async def unregister_sensors():
     await sen0395.unregister_all()
+    await sen0311.unregister_all()
 
 
 async def start_api():

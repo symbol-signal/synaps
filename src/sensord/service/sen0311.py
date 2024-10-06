@@ -3,7 +3,7 @@ from typing import List, Optional
 
 import serialio
 
-from sensation.sen0395 import SensorAsync, PresenceHandlerAsync
+from sensation.sen0311 import SensorAsync, PresenceHandlerAsync
 from sensord.service import mqtt, ws
 from sensord.service.err import AlreadyRegistered, MissingConfigurationField, InvalidConfiguration
 
@@ -49,12 +49,12 @@ def validate_config(config):
 
 
 async def _init_sensor(config):
-    serial_con = serialio.serial_for_url(config['port'], 115200, timeout=1)
+    serial_con = serialio.serial_for_url(config['port'], 9600, timeout=1)
     serial_con.host = 'fake'
     s = SensorAsync(config['name'], serial_con)
     await serial_con.open()
 
-    handler = PresenceHandlerAsync()
+    handler = PresenceHandlerAsync(100, 1000, 2)
     s.handlers.append(handler)
 
     if config.get('print_presence'):
@@ -73,18 +73,7 @@ async def _init_sensor(config):
 
     # TODO Handling exceptions from start methods to not prevent registration
     if config.get('enabled'):
-        s.start_reading()
-
-    if config.get('autostart'):
-        scanning = await s.read_presence() is not None
-        if scanning:
-            log.info(f"[autostart] sensor=[{s.sensor_id}] result=[already_scanning]")
-        else:
-            resp = await s.start_scanning()
-            if resp:
-                log.info(f"[autostart] sensor=[{s.sensor_id}] result=[started]")
-            else:
-                log.warning(f"[autostart] sensor=[{s.sensor_id}] result=[failed] response=[{resp}]")
+        s.start_reading(0.5)
 
     return s
 
