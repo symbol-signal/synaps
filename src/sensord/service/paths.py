@@ -59,7 +59,7 @@ def lookup_file_in_config_path(file) -> Path:
     :return: config file path
     :raise FileNotFoundError: when config lookup failed
     """
-    search_path = runtools_config_file_search_path()
+    search_path = service_config_file_search_path()
     for config_dir in search_path:
         config = config_dir / file
         if config.exists():
@@ -68,13 +68,20 @@ def lookup_file_in_config_path(file) -> Path:
     raise ConfigFileNotFoundError(file, search_path)
 
 
-def runtools_config_file_search_path(*, exclude_cwd=False) -> List[Path]:
-    search_path = config_file_search_path(exclude_cwd=exclude_cwd)
+def service_config_file_search_path(*, exclude_cwd=False) -> List[Path]:
+    search_path = []
+
+    if os.environ.get('SENSORD_CONFIG_DIR'):
+        search_path.append(Path(os.environ['SENSORD_CONFIG_DIR']))
+
+    base_search_path = config_file_search_path(exclude_cwd=exclude_cwd)
 
     if exclude_cwd:
-        return [path / CONFIG_DIR for path in search_path]
+        search_path += [path / CONFIG_DIR for path in base_search_path]
     else:
-        return [search_path[0]] + [path / CONFIG_DIR for path in search_path[1:]]
+        search_path += [base_search_path[0]] + [path / CONFIG_DIR for path in base_search_path[1:]]
+
+    return search_path
 
 
 def config_file_search_path(*, exclude_cwd=False) -> List[Path]:

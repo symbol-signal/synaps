@@ -12,6 +12,7 @@ from sensation.common import SensorType
 from sensord import __version__
 from sensord.common.socket import SocketBindException
 from sensord.service import api, mqtt, paths, sen0395, log, ws, sen0311
+from sensord.service.cfg import Config
 from sensord.service.err import UnknownSensorType, MissingConfigurationField, AlreadyRegistered, InvalidConfiguration, \
     ServiceAlreadyRunning, APINotStarted, ServiceNotStarted, ErrorDuringShutdown
 from sensord.service.paths import ConfigFileNotFoundError, MQTT_CONFIG_FILE, SENSORS_CONFIG_FILE, WS_CONFIG_FILE
@@ -196,39 +197,33 @@ async def init_sensors():
         logger.warning('[no_sensors_loaded] detail=[No sensors configured in the config file: %s]', SENSORS_CONFIG_FILE)
         return
 
-    register_sensor_tasks = [register_sensor(sensor) for sensor in sensors]
+    register_sensor_tasks = [register_sensor(Config('sensor', sensor_config)) for sensor_config in sensors]
     await asyncio.gather(*register_sensor_tasks)
 
 
-async def register_sensor(sensor):
-    if 'type' not in sensor:
-        missing_sensor_config_field('type', sensor)
-        return
-    if 'name' not in sensor:
-        missing_sensor_config_field('name', sensor)
-        return
+async def register_sensor(sensor_config):
     try:
-        await register_sensor_by_type(sensor)
-        logger.info("[sensor_registered] type=[%s] name=[%s]", sensor['type'], sensor['name'])
+        await register_sensor_by_type(sensor_config)
+        logger.info("[sensor_registered] type=[%s] name=[%s]", sensor_config['type'], sensor_config['name'])
     except MissingConfigurationField as e:
-        missing_sensor_config_field(e.field, sensor)
+        missing_sensor_config_field(e.field, sensor_config)
     except InvalidConfiguration as e:
-        logger.warning(f"[invalid_sensor] reason=[invalid_configuration] reason=[{e}] config=[{sensor}]")
+        logger.warning(f"[invalid_sensor] reason=[invalid_configuration] reason=[{e}] config=[{sensor_config}]")
     except UnknownSensorType as e:
-        logger.warning(f"[invalid_sensor] reason=[unknown_sensor_type] type=[{e.sensor_type}] config=[{sensor}]")
+        logger.warning(f"[invalid_sensor] reason=[unknown_sensor_type] type=[{e.sensor_type}] config=[{sensor_config}]")
     except AlreadyRegistered:
-        logger.warning(f"[invalid_sensor] reason=[duplicated_sensor] type=[{sensor['type']}] config=[{sensor}]")
+        logger.warning(f"[invalid_sensor] reason=[duplicated_sensor] type=[{sensor_config['type']}] config=[{sensor_config}]")
 
 
-async def register_sensor_by_type(config):
-    if config["type"] == SensorType.SEN0395.value:
-        await sen0395.register(**config)
+async def register_sensor_by_type(sensor_config):
+    if sensor_config["type"] == SensorType.SEN0395.value:
+        await sen0395.register(sensor_config)
         return
-    if config["type"] == SensorType.SEN0311.value:
-        await sen0311.register(**config)
+    if sensor_config["type"] == SensorType.SEN0311.value:
+        await sen0311.register(sensor_config)
         return
 
-    raise UnknownSensorType(config["type"])
+    raise UnknownSensorType(sensor_config["type"])
 
 
 async def unregister_sensors():
