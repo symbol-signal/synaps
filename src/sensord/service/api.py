@@ -9,9 +9,9 @@ import sensord.service.sen0395
 from sensation.sen0395 import Command
 from sensord import common
 from sensord.cli.client import APIClient
+from sensord.common import paths, sen0311
 from sensord.common.sen0395 import SensorStatuses, SensorConfigChainResponse, SensorCommandResponse, SensorConfigs
 from sensord.common.socket import SocketServerAsync, SocketServerStoppedAlready
-from sensord.service import paths
 from sensord.service.err import ServiceAlreadyRunning
 
 log = logging.getLogger(__name__)
@@ -222,8 +222,33 @@ class APISen0395Reading(APIMethod):
         return SensorStatuses(list(statuses)).serialize()
 
 
+class APISen0311Status(APIMethod):
+
+    @property
+    def method(self):
+        return 'sen0311.status'
+
+    async def handle(self, params):
+        sensor_name = params.get('name')
+        if sensor_name:
+            sensor = sensord.service.sen0311.get_sensor(sensor_name)
+            if not sensor:
+                raise _no_sensor_error(sensor_name)
+
+            return [sensor]
+
+        sensors = sensord.service.sen0311.get_all_sensors()
+
+        if not sensors:
+            raise _no_sensors_error()
+
+        statuses = await asyncio.gather(*(sensor.status() for sensor in sensors))
+        return sen0311.SensorStatuses(list(statuses)).serialize()
+
+
 DEFAULT_METHODS =\
-    (APISen0395Command(), APISen0395Configure(), APISen0395Status(), APISen0395Config(), APISen0395Reading())
+    (APISen0395Command(), APISen0395Configure(), APISen0395Status(), APISen0395Config(), APISen0395Reading(),
+     APISen0311Status())
 
 
 class APIServer(SocketServerAsync):

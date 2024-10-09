@@ -3,8 +3,7 @@ from logging import handlers
 
 from rich.logging import RichHandler
 
-from sensord.common import expand_user
-from sensord.service import paths
+from sensord.common import expand_user, paths
 
 sensord_logger = logging.getLogger('sensord')
 sensord_logger.setLevel(logging.DEBUG)

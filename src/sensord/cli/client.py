@@ -1,6 +1,10 @@
 import json
+from functools import wraps
 from typing import List, Dict
 
+from rich.console import Console
+
+from sensord.common import sen0311, paths
 from sensord.common.sen0395 import SensorStatuses, SensorCommandResponse, SensorConfigChainResponse, SensorConfigs
 from sensord.common.socket import SocketClient, ServerResponse
 
@@ -79,6 +83,30 @@ class APIClient(SocketClient):
         params = {'name': sensor_name, 'enabled': enabled}
         service_response = self.send_request('sen0395.reading', params)
         return SensorStatuses.deserialize(service_response["result"])
+
+    def send_get_status_sen0311(self, sensor_name=None) -> sen0311.SensorStatuses:
+        params = {'name': sensor_name}
+        service_response = self.send_request('sen0311.status', params)
+        return sen0311.SensorStatuses.deserialize(service_response["result"])
+
+def service_call(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        console = Console()
+        api_socket_path = paths.search_api_socket()
+        if not api_socket_path:
+            console.print("[bold red]Sensord service is not running:[/bold red] Start the service by `sensord` command")
+            raise SystemExit(1)
+
+        with APIClient(api_socket_path) as client:
+            try:
+                return func(client, console, *args, **kwargs)
+            except PermissionError as e:
+                console.print(f"[bold red]Access Denied: [/bold red]{e}")
+            except ServiceException as e:
+                console.print(f"[bold red]Service Error: [/bold red]{e}")
+
+    return wrapper
 
 
 class ServiceException(Exception):

@@ -15,8 +15,6 @@ import re
 from pathlib import Path
 from typing import List, Optional
 
-from sensord.service.err import SensordException
-
 API_SOCKET = 'sensord.sock'
 CONFIG_DIR = 'sensord'
 SENSORS_CONFIG_FILE = 'sensors.toml'
@@ -24,7 +22,7 @@ MQTT_CONFIG_FILE = 'mqtt.toml'
 WS_CONFIG_FILE = 'ws.toml'
 
 
-class ConfigFileNotFoundError(SensordException, FileNotFoundError):
+class ConfigFileNotFoundError(FileNotFoundError):
 
     def __init__(self, file, search_path=()):
         self.file = file

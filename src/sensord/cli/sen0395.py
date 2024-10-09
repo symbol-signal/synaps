@@ -1,13 +1,11 @@
 # sen0395_commands.py
-from functools import wraps
 
 import rich_click as click
 from rich.console import Console
 
 from sensation.sen0395 import range_segments, Command
-from sensord.cli.client import APIClient, ServiceException
+from sensord.cli.client import APIClient, service_call
 from sensord.common.sen0395 import sensor_command_responses_table
-from sensord.service import paths
 
 
 @click.group()
@@ -84,26 +82,6 @@ def detrange(para_s, para_e, parb_s, parb_e, parc_s, parc_e, pard_s, pard_e, nam
 def sensitivity(value, name):
     """Configure sensor sensitivity value (0-9)"""
     send_command(Command.SET_SENSITIVITY, [value], sensor_name=name)
-
-
-def service_call(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        console = Console()
-        api_socket_path = paths.search_api_socket()
-        if not api_socket_path:
-            console.print("[bold red]Sensord service is not running:[/bold red] Start the service by `sensord` command")
-            raise SystemExit(1)
-
-        with APIClient(api_socket_path) as client:
-            try:
-                return func(client, console, *args, **kwargs)
-            except PermissionError as e:
-                console.print(f"[bold red]Access Denied: [/bold red]{e}")
-            except ServiceException as e:
-                console.print(f"[bold red]Service Error: [/bold red]{e}")
-
-    return wrapper
 
 
 @sen0395.command()

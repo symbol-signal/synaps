@@ -1,40 +1,40 @@
-class SensordException(Exception):
+class ServiceException(Exception):
     pass
 
 
-class APINotStarted(SensordException):
+class APINotStarted(ServiceException):
     pass
 
 
-class ServiceNotStarted(SensordException):
+class ServiceNotStarted(ServiceException):
     pass
 
 
-class ErrorDuringShutdown(SensordException):
+class ErrorDuringShutdown(ServiceException):
     pass
 
 
-class ServiceAlreadyRunning(SensordException):
+class ServiceAlreadyRunning(ServiceException):
     pass
 
 
-class InvalidConfiguration(SensordException):
+class InvalidConfiguration(ServiceException):
     pass
 
 
-class MissingConfigurationField(SensordException):
+class MissingConfigurationField(ServiceException):
 
     def __init__(self, field):
         self.field = field
         super().__init__(f"Missing configuration field: {field}")
 
 
-class UnknownSensorType(SensordException):
+class UnknownSensorType(ServiceException):
 
     def __init__(self, sensor_type):
         self.sensor_type = sensor_type
         super().__init__(f"Unknown sensor type: {sensor_type}")
 
 
-class AlreadyRegistered(SensordException):
+class AlreadyRegistered(ServiceException):
     pass
