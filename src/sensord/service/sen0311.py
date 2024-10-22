@@ -28,7 +28,16 @@ async def _init_sensor(config):
     s = SensorAsync(config['name'], serial_con)
     await serial_con.open()
 
-    handler = PresenceHandlerAsync(100, 1000, 2)
+    # Total max delay for presence change trigger => 0.5 * (hysteresis_count - 1)
+    read_sleep_interval = 0.5  # TODO config parameter
+
+    handler = PresenceHandlerAsync(
+        threshold_presence=config['threshold_presence'],
+        threshold_absence=config['threshold_absence'],
+        hysteresis_count=config.get('hysteresis_count', 1),
+        delay_presence=config.get('delay_presence', 0),
+        delay_absence=config.get('delay_absence', 0),
+    )
     s.handlers.append(handler)
 
     if config.get('print_presence'):
@@ -48,7 +57,7 @@ async def _init_sensor(config):
 
     # TODO Handling exceptions from start methods to not prevent registration
     if config.get('enabled'):
-        s.start_reading(0.5)
+        s.start_reading(read_sleep_interval)
 
     return s
 
