@@ -31,29 +31,30 @@ async def _init_sensor(config):
     # Total max delay for presence change trigger => 0.5 * (hysteresis_count - 1)
     read_sleep_interval = 0.5  # TODO config parameter
 
-    handler = PresenceHandlerAsync(
-        threshold_presence=config['threshold_presence'],
-        threshold_absence=config['threshold_absence'],
-        hysteresis_count=config.get('hysteresis_count', 1),
-        delay_presence=config.get('delay_presence', 0),
-        delay_absence=config.get('delay_absence', 0),
-    )
-    s.handlers.append(handler)
-
-    if config.get('print_presence'):
-        handler.observers.append(
-            lambda presence: log.debug(f"[presence_change] sensor=[{s.sensor_id}] presence=[{presence}]"))
-
-    for mc in config.get_list("mqtt"):
-        broker = mc['broker']
-        topic = mc['topic']
-        handler.observers.append(
-            lambda presence, b=broker, t=topic: mqtt.send_presence_changed_event(b, t, s.sensor_id, presence)
+    if presence := config.get('presence'):
+        handler = PresenceHandlerAsync(
+            threshold_presence=presence['threshold_presence'],
+            threshold_absence=presence['threshold_absence'],
+            hysteresis_count=presence.get('hysteresis_count', 1),
+            delay_presence=presence.get('delay_presence', 0),
+            delay_absence=presence.get('delay_absence', 0),
         )
+        s.handlers.append(handler)
 
-    for wc in config.get_list("ws"):
-        endpoint = wc['endpoint']
-        handler.observers.append(lambda presence, e=endpoint: ws.send_presence_changed_event(e, s.sensor_id, presence))
+        if presence.get('print_presence'):
+            handler.observers.append(
+                lambda presence: log.debug(f"[presence_change] sensor=[{s.sensor_id}] presence=[{presence}]"))
+
+        for mc in presence.get_list("mqtt"):
+            broker = mc['broker']
+            topic = mc['topic']
+            handler.observers.append(
+                lambda presence, b=broker, t=topic: mqtt.send_presence_changed_event(b, t, s.sensor_id, presence)
+            )
+
+        for wc in presence.get_list("ws"):
+            endpoint = wc['endpoint']
+            handler.observers.append(lambda presence, e=endpoint: ws.send_presence_changed_event(e, s.sensor_id, presence))
 
     # TODO Handling exceptions from start methods to not prevent registration
     if config.get('enabled'):

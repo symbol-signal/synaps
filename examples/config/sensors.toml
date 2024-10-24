@@ -19,14 +19,15 @@ endpoint = "local-rpi"
 type = "sen0311"
 name = "shower"
 port = "serial:///dev/ttyAMA3"
+enabled = true
+[sensor.presence]
 # Presence is detected when the measurement is between 100 and 1000 cm
 threshold_presence = 100
 threshold_absence = 1000
 # optional fields
-enabled = true
-print_presence = true
 hysteresis_count = 2  # 2 consecutive measurements are required to change the presence state
 delay_presence = 0  # No delay - same as this field would be omitted
 delay_absence = 3.5  # The presence value is changed to `absence` after 3.5 seconds of continuos absence state
-[[sensor.ws]]
+print_presence = true
+[[sensor.presence.ws]]
 endpoint = "rpi_main
