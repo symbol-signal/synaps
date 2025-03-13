@@ -92,6 +92,30 @@ See the [example configuration file](examples/config/sensors.toml).
 ###### Section [[sensor.ws]] (optional)
  - `endpoint`: The configured name of the WS endpoint to which the sensor should publish presence data.
 
+##### SEN0311
+###### Mandatory fields
+- `type`: Specifies the type of the sensor. Must be set to `"sen0311"` for the SEN0311 sensor.
+- `name`: A unique name for the sensor instance. Used for identification.
+- `port`: The serial port to which the sensor is connected (e.g., `"/dev/ttyAMA0"`, `"/dev/ttyUSB0"`).
+
+###### Optional fields
+- `enabled` (default: `true`): If set to `true`, the service will start reading and processing sensor data.
+- `print_presence` (default: `true`): Determines whether presence changes should be printed to stdout and logged.
+
+###### Section [sensor.presence] (required)
+- `threshold_presence`: Distance in cm below which presence is detected.
+- `threshold_absence`: Distance in cm above which absence is detected.
+- `hysteresis_count` (optional, default: `1`): Number of consecutive readings required to change the presence state.
+- `delay_presence` (optional, default: `0`): Delay in seconds before confirming a presence detection.
+- `delay_absence` (optional, default: `0`): Delay in seconds before confirming an absence detection.
+
+###### Section [[sensor.presence.mqtt]] (optional)
+- `broker`: The configured name of the MQTT broker to which the sensor should publish presence data.
+- `topic`: The MQTT topic under which the presence data should be published.
+
+###### Section [[sensor.presence.ws]] (optional)
+- `endpoint`: The configured name of the WS endpoint to which the sensor should publish presence data.
+
 ### MQTT
 #### Broker Configuration
 Presence change events of a sensor can be sent as an MQTT message to an MQTT broker. For this, a broker must first be
@@ -241,3 +265,11 @@ Start reading and processing data from the SEN0395 sensor(s).
 
 `disable`\
 Stop reading and processing data from the SEN0395 sensor(s).
+
+#### SEN0311
+The sen0311 subcommand group provides commands for controlling the DFRobot ultrasonic distance sensor SEN0311.
+
+`status`
+Print the status of the SEN0311 sensor(s). Use the `--name` option to specify a particular sensor.
+
+**Note**: More commands to be added...

@@ -30,4 +30,4 @@ sensord = "sensord.service:cli"
 sensorctl = "sensord.cli:cli"
 
 [project.urls]
-Home = "https://github.com/StanSvec/dfrobot-sen0395"
+Home = "https://github.com/symbol-signal/sensord"
