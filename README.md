@@ -53,7 +53,7 @@ pipx install sensord
 ### Installing system-wide
 If your pipx is installed system-wide, you can also install this service globally.
 ```commandline
-sudo pipx --global install sensord
+sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install --global sensord
 ```
 This makes `sensord` available for all users in the system, which can be convenient, for example, if you plan to
 run it as a systemd service by a dedicated user.
