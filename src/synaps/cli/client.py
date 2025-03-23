@@ -4,9 +4,9 @@ from typing import List, Dict
 
 from rich.console import Console
 
-from sensord.common import sen0311, paths
-from sensord.common.sen0395 import SensorStatuses, SensorCommandResponse, SensorConfigChainResponse, SensorConfigs
-from sensord.common.socket import SocketClient, ServerResponse
+from synaps.common import sen0311, paths
+from synaps.common.sen0395 import SensorStatuses, SensorCommandResponse, SensorConfigChainResponse, SensorConfigs
+from synaps.common.socket import SocketClient, ServerResponse
 
 
 class APIClient(SocketClient):
@@ -95,7 +95,7 @@ def service_call(func):
         console = Console()
         api_socket_path = paths.search_api_socket()
         if not api_socket_path:
-            console.print("[bold red]Sensord service is not running:[/bold red] Start the service by `sensord` command")
+            console.print("[bold red]Synapsd service is not running:[/bold red] Start the service by `synapsd` command")
             raise SystemExit(1)
 
         with APIClient(api_socket_path) as client:

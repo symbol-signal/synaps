@@ -1,15 +1,15 @@
 import rich_click as click
 
-from sensord import __version__
-from sensord.cli.sen0311 import sen0311
-from sensord.cli.sen0395 import sen0395
+from synaps import __version__
+from synaps.cli.sen0311 import sen0311
+from synaps.cli.sen0395 import sen0395
 
 
 @click.group()
 @click.version_option(__version__)
 def cli():
     """
-    Command-line tool for controlling sensord service.
+    Command-line tool for controlling synaps service.
     """
     pass
 

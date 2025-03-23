@@ -4,8 +4,8 @@ import rich_click as click
 from rich.console import Console
 
 from sensation.sen0395 import range_segments, Command
-from sensord.cli.client import APIClient, service_call
-from sensord.common.sen0395 import sensor_command_responses_table
+from synaps.cli.client import APIClient, service_call
+from synaps.common.sen0395 import sensor_command_responses_table
 
 
 @click.group()

@@ -4,8 +4,8 @@ from typing import List, Optional
 import serialio
 
 from sensation.sen0311 import SensorAsync, PresenceHandlerAsync
-from sensord.service import mqtt, ws
-from sensord.service.err import AlreadyRegistered
+from synaps.service import mqtt, ws
+from synaps.service.err import AlreadyRegistered
 
 log = logging.getLogger(__name__)
 

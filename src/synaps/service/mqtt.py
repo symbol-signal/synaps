@@ -6,7 +6,7 @@ from gmqtt import Client
 from rich import json
 
 from sensation.common import SensorId
-from sensord.service.err import MissingConfigurationField, AlreadyRegistered
+from synaps.service.err import MissingConfigurationField, AlreadyRegistered
 
 logger = logging.getLogger(__name__)
 

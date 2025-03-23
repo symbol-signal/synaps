@@ -15,8 +15,8 @@ import re
 from pathlib import Path
 from typing import List, Optional
 
-API_SOCKET = 'sensord.sock'
-CONFIG_DIR = 'sensord'
+API_SOCKET = 'synaps.sock'
+CONFIG_DIR = 'synaps'
 SENSORS_CONFIG_FILE = 'sensors.toml'
 MQTT_CONFIG_FILE = 'mqtt.toml'
 WS_CONFIG_FILE = 'ws.toml'
@@ -69,8 +69,8 @@ def lookup_file_in_config_path(file) -> Path:
 def service_config_file_search_path(*, exclude_cwd=False) -> List[Path]:
     search_path = []
 
-    if os.environ.get('SENSORD_CONFIG_DIR'):
-        search_path.append(Path(os.environ['SENSORD_CONFIG_DIR']))
+    if os.environ.get('SYNAPS_CONFIG_DIR'):
+        search_path.append(Path(os.environ['SYNAPS_CONFIG_DIR']))
 
     base_search_path = config_file_search_path(exclude_cwd=exclude_cwd)
 
@@ -120,8 +120,8 @@ def xdg_config_dirs() -> List[Path]:
 
 def log_file_path(create: bool) -> Path:
     """
-    1. Root user: /var/log/sensord/{log-file}
-    2. Non-root user: ${XDG_CACHE_HOME}/sensord/{log-file} or default to ${HOME}/.cache/sensord
+    1. Root user: /var/log/synaps/{log-file}
+    2. Non-root user: ${XDG_CACHE_HOME}/synaps/{log-file} or default to ${HOME}/.cache/synaps
 
     :param create: create path directories if not exist
     :return: log file path
@@ -142,15 +142,15 @@ def log_file_path(create: bool) -> Path:
                 create = False
 
     if create:
-        os.makedirs(path / 'sensord', exist_ok=True)
+        os.makedirs(path / 'synaps', exist_ok=True)
 
-    return path / 'sensord' / 'sensord.log'
+    return path / 'synaps' / 'synaps.log'
 
 
 def socket_dir() -> Path:
     """
     1. Root user: /run
-    2. Non-root user: /tmp (An alternative may be: ${HOME}/.cache/sensord)
+    2. Non-root user: /tmp (An alternative may be: ${HOME}/.cache/synaps)
     :return: directory path for unix domain sockets
     """
 
@@ -165,7 +165,7 @@ def socket_dir() -> Path:
 def socket_path(socket_name: str) -> Path:
     """
     1. Root user: /run/{socket-name}
-    2. Non-root user: /tmp/{socket-name} (An alternative may be: ${HOME}/.cache/sensord/{socket-name})
+    2. Non-root user: /tmp/{socket-name} (An alternative may be: ${HOME}/.cache/synaps/{socket-name})
 
     :param socket_name: socket file name
     :return: unix domain socket path
@@ -199,7 +199,7 @@ def search_api_socket() -> Optional[Path]:
 
 def lock_dir(create: bool) -> Path:
     """
-    1. Root user: /run/lock/sensord
+    1. Root user: /run/lock/synaps
     2. Non-root user: /tmp/taro_${USER}
 
     :param create: create path directories if not exist
@@ -208,9 +208,9 @@ def lock_dir(create: bool) -> Path:
     """
 
     if _is_root():
-        path = Path('/run/lock/sensord')
+        path = Path('/run/lock/synaps')
     else:
-        path = Path(f"/tmp/sensord_{getpass.getuser()}")
+        path = Path(f"/tmp/SYNAPS_{getpass.getuser()}")
 
     if create:
         path.mkdir(mode=0o700, exist_ok=True)
@@ -220,7 +220,7 @@ def lock_dir(create: bool) -> Path:
 
 def lock_path(lock_name: str, create: bool) -> Path:
     """
-    1. Root user: /run/lock/sensord/{lock-name}
+    1. Root user: /run/lock/synaps/{lock-name}
     2. Non-root user: /tmp/taro_${USER}/{lock-name}
 
     :param lock_name: socket file name

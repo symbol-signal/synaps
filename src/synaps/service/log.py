@@ -3,10 +3,10 @@ from logging import handlers
 
 from rich.logging import RichHandler
 
-from sensord.common import expand_user, paths
+from synaps.common import expand_user, paths
 
-sensord_logger = logging.getLogger('sensord')
-sensord_logger.setLevel(logging.DEBUG)
+synapsd_logger = logging.getLogger('synaps')
+synapsd_logger.setLevel(logging.DEBUG)
 
 sensation_logger = logging.getLogger('sensation')
 sensation_logger.setLevel(logging.DEBUG)
@@ -20,7 +20,7 @@ FILE_HANDLER_NAME = 'file-handler'
 
 def configure(enabled, log_file_level='info', log_file_path=None):
     if not enabled:
-        sensord_logger.disabled = True
+        synapsd_logger.disabled = True
         sensation_logger.disabled = True
         return
 
@@ -30,13 +30,13 @@ def configure(enabled, log_file_level='info', log_file_path=None):
         level = logging.getLevelName(log_file_level.upper())
         log_file_path = expand_user(log_file_path) or paths.log_file_path(create=True)
         setup_file(level, log_file_path)
-        if level < sensord_logger.getEffectiveLevel():
-            sensord_logger.setLevel(level)
+        if level < synapsd_logger.getEffectiveLevel():
+            synapsd_logger.setLevel(level)
             sensation_logger.setLevel(level)
 
 
 def is_disabled():
-    return sensord_logger.disabled
+    return synapsd_logger.disabled
 
 
 def setup_console(level):
@@ -57,7 +57,7 @@ def setup_file(level, file):
 
 
 def register_handler(handler):
-    register_handler_for_logger(sensord_logger, handler)
+    register_handler_for_logger(synapsd_logger, handler)
     register_handler_for_logger(sensation_logger, handler)
 
 

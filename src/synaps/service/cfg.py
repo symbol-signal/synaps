@@ -1,6 +1,6 @@
 from typing import Any, Iterable, Mapping, List
 
-from sensord.service.err import MissingConfigurationField, InvalidConfiguration
+from synaps.service.err import MissingConfigurationField, InvalidConfiguration
 
 
 class Config:

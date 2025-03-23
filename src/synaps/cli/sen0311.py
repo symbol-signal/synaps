@@ -1,7 +1,7 @@
 import rich_click as click
 from rich.console import Console
 
-from sensord.cli.client import service_call, APIClient
+from synaps.cli.client import service_call, APIClient
 
 
 @click.group()

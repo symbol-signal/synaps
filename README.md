@@ -1,24 +1,31 @@
-# Sensord
-The distribution package consists of two main components.
+# Synaps
+Synaps is a sensor management middleware that transforms low-level device interfaces (serial, I2C, GPIO) 
+into high-level communication systems (WebSockets, MQTT) and management tools (CLI). 
+It acts as a middleware layer that abstracts away sensor implementation complexities, providing a unified facade 
+for interacting with various IoT sensors and devices. By translating device-specific data into standardized event streams, 
+Synaps enables seamless integration of physical sensors into networked applications and automation systems.
 
-**Sensor Service**
-- Executable: `sensord`
-- Manages IoT devices and sensors using the [Sensation library](https://github.com/symbol-signal/sensation).
+The distribution package consists of two main components:
+
+**Synaps Service**
+- Executable: `synapsd`
+- Manages IoT devices and sensors utilizing the [Sensation library](https://github.com/symbol-signal/sensation).
 - Runs as a background process.
 - Handles communication and data processing for connected sensors.
-- Sends sensor data and events to external systems according to configured endpoints (MQTT, etc.)
+- Sends sensor data and events to external systems according to configured endpoints (MQTT, WebSockets, etc.)
+- Provides domain socket API for the CLI part
 
-**Sensor Control CLI**
-- Executable: `sensorctl`
-- Provides a command-line tool for controlling and interacting with the Sensor Service.
-- Allows users to start, stop, configure, and monitor sensors through the command line.
-- Offers a convenient way to manage the Sensor Service and connected devices.
+**Synaps Control CLI**
+- Executable: `synaps`
+- Provides a command-line tool for controlling and interacting with the Synaps Service.
+- Allows users to start, stop, configure, and monitor sensors/devices through the command line.
+- Offers a convenient way to manage the Synaps Service and connected devices.
 
 ## Table of Contents
 - [Installation](#installation)
   - [Installing for a given user](#installing-for-a-given-user)
   - [Installing system-wide](#installing-system-wide)
-- [Sensord service](#sensord-service)
+- [Synaps Service](#synaps-service)
   - [Configuration Directory](#configuration-directory)
   - [Sensors](#sensors)
     - [Configuration](#configuration)
@@ -27,6 +34,12 @@ The distribution package consists of two main components.
       - [Optional fields](#optional-fields)
       - [Section [[sensor.mqtt]]](#section-sensormqtt-optional)
       - [Section [[sensor.ws]]](#section-sensorws-optional)
+    - [SEN0311](#sen0311)
+      - [Mandatory fields-1](#mandatory-fields-1)
+      - [Optional fields-1](#optional-fields-1)
+      - [Section [sensor.presence]](#section-sensorpresence-required)
+      - [Section [[sensor.presence.mqtt]]](#section-sensorpresencemqtt-optional)
+      - [Section [[sensor.presence.ws]]](#section-sensorpresencews-optional)
   - [MQTT](#mqtt)
     - [Broker Configuration](#broker-configuration)
     - [Payload](#payload)
@@ -36,9 +49,10 @@ The distribution package consists of two main components.
     - [Payload](#payload-1)
     - [Sensor Configuration](#sensor-configuration-1)
   - [Systemd](#systemd)
-- [Sensor Control CLI](#sensor-control-cli)
+- [Synaps Control CLI](#synaps-control-cli)
   - [Subcommands](#subcommands)
     - [SEN0395](#sen0395-1)
+    - [SEN0311](#sen0311-1)
 
 ## Installation
 The recommended way of installing this service is using [pipx](https://pipx.pypa.io/stable/), 
@@ -47,27 +61,27 @@ pipx if it is not already on your system.
 
 ### Installing for a given user
 ```commandline
-pipx install sensord
+pipx install synaps
 ```
 
 ### Installing system-wide
 If your pipx is installed system-wide, you can also install this service globally.
 ```commandline
-sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install --global sensord
+sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install --global synaps
 ```
-This makes `sensord` available for all users in the system, which can be convenient, for example, if you plan to
+This makes `synaps` available for all users in the system, which can be convenient, for example, if you plan to
 run it as a systemd service by a dedicated user.
 
-## Sensord service
-Execute by: `sensord` command or run [as a systemd service](#systemd)
+## Synaps Service
+Execute by: `synapsd` command or run [as a systemd service](#systemd)
 > Never run more than one instance of the service at the same time. Especially, do not run simultaneously 
 > under a super user and a normal user.
 
 ### Configuration Directory
-All service configuration files must be placed in the `sensord` directory located in one of the configuration paths 
+All service configuration files must be placed in the `synaps` directory located in one of the configuration paths 
 according to the [XDG specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html):
-- For a given user: `~/.config/sensord` or `$XDG_CONFIG_HOME/sensord`
-- For all users: `/etc/xdg/sensord` or `/etc/sensord`
+- For a given user: `~/.config/synaps` or `$XDG_CONFIG_HOME/synaps`
+- For all users: `/etc/xdg/synaps` or `/etc/synaps`
 
 ### Sensors
 #### Configuration
@@ -185,53 +199,53 @@ To run this service as a systemd service, follow the steps below.
 
 *You can create a dedicated user for the service and add the user to the required groups (optional):*
 ```commandline
-sudo useradd -r -s /usr/sbin/nologin sensord
-sudo usermod -a -G dialout sensord
+sudo useradd -r -s /usr/sbin/nologin synaps
+sudo usermod -a -G dialout synaps
 ```
 **Note:** *`dialout` group is required for reading serial port on Raspberry Pi OS*
 
-Create the service file `/etc/systemd/system/sensord.service`:
+Create the service file `/etc/systemd/system/synapsd.service`:
 ```
 [Unit]
-Description=Sensor Daemon Service
+Description=Synaps Daemon Service
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/sensord --log-file-level off
+ExecStart=/usr/local/bin/synapsd --log-file-level off
 Restart=always
-User=sensord
-Group=sensord
+User=synaps
+Group=synaps
 
 [Install]
 WantedBy=multi-user.target
 ```
-**Note:** *You can remove the `--log-file-level off` option if you want to log to `/var/log/sensord`. 
+**Note:** *You can remove the `--log-file-level off` option if you want to log to `/var/log/synaps`. 
 However, you need to set the corresponding permissions for the user.*
 
 Active and start the service:
 ```commandline
 sudo systemctl daemon-reload
-sudo systemctl enable sensord.service
-sudo systemctl start sensord.service
+sudo systemctl enable synapsd.service
+sudo systemctl start synapsd.service
 ```
-To manually debug, you can run the service as `sensord` user:
+To manually debug, you can run the service as `synaps` user:
 ```commandline
-sudo -u sensord /usr/local/bin/sensord
+sudo -u synaps /usr/local/bin/synapsd
 ```
 To read the service logs in the journal:
 ```commandline
- journalctl -u sensord
+ journalctl -u synapsd
 ```
 
-## Sensor Control CLI
-Execute `sensorctl --help` to see the available commands. This CLI utility communicates with the `sensord` service.
+## Synaps Control CLI
+Execute `synaps --help` to see the available commands. This CLI utility communicates with the `synapsd` service.
 The service must be running when a command is executed.
 
-**Note:** *If the service runs under a different user than the one executing `sensorctl`, then the current user must be added
-to the same group as the primary group of the service user. For example, if the service runs as the `sensord` user
-with the `sensord` group, then add the current user to the same group:*
+**Note:** *If the service runs under a different user than the one executing `synaps`, then the current user must be added
+to the same group as the primary group of the service user. For example, if the service runs as the `synaps` user
+with the `synaps` group, then add the current user to the same group:*
 ```commandline
-sudo usermod -a -G sensord $USER
+sudo usermod -a -G synaps $USER
 ```
 *After adding the user to the group, the user needs to log out and log back in for the group changes to take effect.*
 

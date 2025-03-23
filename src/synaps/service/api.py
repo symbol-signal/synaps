@@ -5,14 +5,14 @@ import os
 from abc import ABC, abstractmethod
 from json import JSONDecodeError
 
-import sensord.service.sen0395
+import synaps.service.sen0395
 from sensation.sen0395 import Command
-from sensord import common
-from sensord.cli.client import APIClient
-from sensord.common import paths, sen0311
-from sensord.common.sen0395 import SensorStatuses, SensorConfigChainResponse, SensorCommandResponse, SensorConfigs
-from sensord.common.socket import SocketServerAsync, SocketServerStoppedAlready
-from sensord.service.err import ServiceAlreadyRunning
+from synaps import common
+from synaps.cli.client import APIClient
+from synaps.common import paths, sen0311
+from synaps.common.sen0395 import SensorStatuses, SensorConfigChainResponse, SensorCommandResponse, SensorConfigs
+from synaps.common.socket import SocketServerAsync, SocketServerStoppedAlready
+from synaps.service.err import ServiceAlreadyRunning
 
 log = logging.getLogger(__name__)
 
@@ -92,13 +92,13 @@ class APIMethod(ABC):
 
 def _get_sensors(sensor_name):
     if sensor_name:
-        sensor = sensord.service.sen0395.get_sensor(sensor_name)
+        sensor = synaps.service.sen0395.get_sensor(sensor_name)
         if not sensor:
             raise _no_sensor_error(sensor_name)
 
         return [sensor]
 
-    sensors = sensord.service.sen0395.get_all_sensors()
+    sensors = synaps.service.sen0395.get_all_sensors()
 
     if not sensors:
         raise _no_sensors_error()
@@ -231,13 +231,13 @@ class APISen0311Status(APIMethod):
     async def handle(self, params):
         sensor_name = params.get('name')
         if sensor_name:
-            sensor = sensord.service.sen0311.get_sensor(sensor_name)
+            sensor = synaps.service.sen0311.get_sensor(sensor_name)
             if not sensor:
                 raise _no_sensor_error(sensor_name)
 
             return [sensor]
 
-        sensors = sensord.service.sen0311.get_all_sensors()
+        sensors = synaps.service.sen0311.get_all_sensors()
 
         if not sensors:
             raise _no_sensors_error()

@@ -9,14 +9,14 @@ import rich_click as click
 import tomli
 
 from sensation.common import SensorType
-from sensord import __version__
-from sensord.common.socket import SocketBindException
-from sensord.service import api, mqtt, sen0395, log, ws, sen0311
-from sensord.common import paths
-from sensord.service.cfg import Config
-from sensord.service.err import UnknownSensorType, MissingConfigurationField, AlreadyRegistered, InvalidConfiguration, \
+from synaps import __version__
+from synaps.common.socket import SocketBindException
+from synaps.service import api, mqtt, sen0395, log, ws, sen0311
+from synaps.common import paths
+from synaps.service.cfg import Config
+from synaps.service.err import UnknownSensorType, MissingConfigurationField, AlreadyRegistered, InvalidConfiguration, \
     ServiceAlreadyRunning, APINotStarted, ServiceNotStarted, ErrorDuringShutdown
-from sensord.common.paths import ConfigFileNotFoundError, MQTT_CONFIG_FILE, SENSORS_CONFIG_FILE, WS_CONFIG_FILE
+from synaps.common.paths import ConfigFileNotFoundError, MQTT_CONFIG_FILE, SENSORS_CONFIG_FILE, WS_CONFIG_FILE
 
 logger = logging.getLogger(__name__)
 
