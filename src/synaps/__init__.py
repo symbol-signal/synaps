@@ -1,16 +1,16 @@
 """
 This distribution package consists of two main components:
 
-1. Sensor Service (daemon):
+1. Synaps Service (daemon):
    - Manages IoT devices and sensors.
    - Runs as a background process.
    - Handles communication and data processing for connected sensors.
 
-2. Sensor Control (sensorctl) CLI:
-   - Provides a command-line tool for controlling and interacting with the Sensor Service.
-   - Allows users to start, stop, configure, and monitor sensors through the command line.
-   - Offers a convenient way to manage the Sensor Service and connected devices.
+2. Synaps Control (CLI):
+   - Provides a command-line tool for controlling and interacting with the Synaps Service.
+   - Allows users to configure and monitor devices through the command line.
+   - Offers a convenient way to manage the Synaps Service and connected devices.
 
 """
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
