@@ -8,15 +8,17 @@ import aiofiles
 import rich_click as click
 import tomli
 
+import synaps.service.rpio
 from sensation.common import SensorType
 from synaps import __version__
-from synaps.common.socket import SocketBindException
-from synaps.service import api, mqtt, sen0395, log, ws, sen0311
 from synaps.common import paths
+from synaps.common.paths import ConfigFileNotFoundError, MQTT_CONFIG_FILE, SENSORS_CONFIG_FILE, WS_CONFIG_FILE, \
+    RPIO_CONFIG_FILE
+from synaps.common.socket import SocketBindException
+from synaps.service import api, mqtt, sen0395, log, ws, sen0311, ksm
 from synaps.service.cfg import Config
 from synaps.service.err import UnknownSensorType, MissingConfigurationField, AlreadyRegistered, InvalidConfiguration, \
     ServiceAlreadyRunning, APINotStarted, ServiceNotStarted, ErrorDuringShutdown
-from synaps.common.paths import ConfigFileNotFoundError, MQTT_CONFIG_FILE, SENSORS_CONFIG_FILE, WS_CONFIG_FILE
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +32,7 @@ def register_signal_handlers():
 
 
 async def on_signal(signal_):
-    logger.info(f"[exit_signal_received] signal=[{signal_.name}]")
+    logger.info(f"[exit_signal_received] service=[synapsd] signal=[{signal_.name}]")
     shutdown_event.set()
 
 
@@ -41,14 +43,14 @@ async def on_signal(signal_):
               help='Set the log level for file logging')
 def cli(log_file_level):
     log.configure(True, log_file_level=log_file_level)
-    logger.info('[service_started]')
+    logger.info('[service_started] service=[synapsd]')
     try:
         asyncio.run(run_service())
-        logger.info("[service_stopped]")
+        logger.info("[service_stopped] service=[synapsd]")
     except (APINotStarted, ServiceNotStarted, ErrorDuringShutdown):
         exit(1)
     except Exception:
-        logger.exception("[service_failed]")
+        logger.exception("[service_failed] service=[synapsd]")
         exit(1)
 
 
@@ -61,7 +63,7 @@ async def run_service():
     init_success = await initialize()  # Throws APINotStarted
 
     if init_success:
-        logger.info("[service_started_successfully]")
+        logger.info("[service_started_successfully] service=[synapsd]")
         await shutdown_event.wait()
 
     shutdown_success = await shutdown()
@@ -79,19 +81,19 @@ async def initialize():
 
     # Continue with init after API started successfully
     # TODO Init sensors last?
-    results = await asyncio.gather(init_mqtt(), init_ws(), init_sensors(), return_exceptions=True)
+    results = await asyncio.gather(init_mqtt(), init_ws(), init_sensors(), init_rpio(), return_exceptions=True)
 
     success = True
     for result in results:
         if isinstance(result, Exception):
-            logger.error("[error_during_init]", exc_info=result)
+            logger.error("[error_during_init] service=[synapsd]", exc_info=result)
             success = False
 
     return success
 
 
 async def shutdown():
-    logger.info("[shutdown_initiated]")
+    logger.info("[shutdown_initiated] service=[synapsd]")
 
     success = True
     # Stop the API first before shutting down remaining of the service, so the API doesn't serve in invalid states
@@ -99,13 +101,13 @@ async def shutdown():
         await stop_api()
     except Exception:
         success = False
-        logger.exception("[unexpected_stop_api_error]")
+        logger.exception("[unexpected_stop_api_error] service=[synapsd]")
 
-    results = await asyncio.gather(unregister_sensors(), unregister_mqtt(), unregister_ws(), return_exceptions=True)
+    results = await asyncio.gather(unregister_devices(), unregister_mqtt(), unregister_ws(), return_exceptions=True)
     for result in results:
         if isinstance(result, Exception):
             success = False
-            logger.error("[error_during_shutdown]", exc_info=result)
+            logger.error("[error_during_shutdown] service=[synapsd]", exc_info=result)
 
     return success
 
@@ -189,7 +191,7 @@ async def init_sensors():
     try:
         config = await read_config_file(SENSORS_CONFIG_FILE)
     except ConfigFileNotFoundError as e:
-        logger.warning(f"[no_sensors_config_file] detail=[{e}]")
+        logger.info(f"[no_sensors_config_file] detail=[{e}]")
         return
 
     sensors = config.get('sensor')
@@ -213,7 +215,8 @@ async def register_sensor(sensor_config):
     except UnknownSensorType as e:
         logger.warning(f"[invalid_sensor] reason=[unknown_sensor_type] type=[{e.sensor_type}] config=[{sensor_config}]")
     except AlreadyRegistered:
-        logger.warning(f"[invalid_sensor] reason=[duplicated_sensor] type=[{sensor_config['type']}] config=[{sensor_config}]")
+        logger.warning(
+            f"[invalid_sensor] reason=[duplicated_sensor] type=[{sensor_config['type']}] config=[{sensor_config}]")
 
 
 async def register_sensor_by_type(sensor_config):
@@ -227,9 +230,31 @@ async def register_sensor_by_type(sensor_config):
     raise UnknownSensorType(sensor_config["type"])
 
 
-async def unregister_sensors():
+async def unregister_devices():
     await sen0395.unregister_all()
     await sen0311.unregister_all()
+    rpio.unregister_all()
+
+
+async def init_rpio():
+    try:
+        config = await read_config_file(RPIO_CONFIG_FILE)
+    except ConfigFileNotFoundError as e:
+        logger.info(f"[no_rpio_config_file] detail=[{e}]")
+        return
+
+    platforms = config.get('platform')
+
+    if not platforms:
+        logger.warning('[no_platforms_loaded] detail=[No RPIO platforms configured in the config file: %s]',
+                       RPIO_CONFIG_FILE)
+        return
+
+    if type(platforms) != list:
+        raise InvalidConfiguration(f"Platforms must be list the TOML configuration file, but it was {type(platforms)}")
+
+    for platform_config in platforms:
+        rpio.register(Config('platform', platform_config))
 
 
 async def start_api():

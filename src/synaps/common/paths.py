@@ -18,6 +18,7 @@ from typing import List, Optional
 API_SOCKET = 'synaps.sock'
 CONFIG_DIR = 'synaps'
 SENSORS_CONFIG_FILE = 'sensors.toml'
+RPIO_CONFIG_FILE = 'rpio.toml'
 MQTT_CONFIG_FILE = 'mqtt.toml'
 WS_CONFIG_FILE = 'ws.toml'
 
