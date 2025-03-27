@@ -73,21 +73,21 @@ class DigitalInput(Enum):
             f"platform.switch.digital_input value `{input_id}` is not between 1-8")
 
 
-def create_platform(platform_config: Config):
-    host = platform_config["host"]
+def create_platform(conf: Config):
+    host = conf["host"]
     factory = PiGPIOFactory(host=host)
 
     switches = []
-    for switch_conf in platform_config.get_list("switch"):
+    for switch_conf in conf.get_list("switch"):
         di = DigitalInput.get_by_id(switch_conf["digital_input"])
         dev_id = switch_conf["device_id"]
-        button = Button(pin=di.gpio_pin, pin_factory=factory)
+        button = Button(pin=di.gpio_pin, pin_factory=factory, bounce_time=switch_conf.get("bounce_time"))
         switch = KsmSwitch(button, di, dev_id)
         switches.append(switch)
 
     platform = KinconyServerMini(factory, switches)
 
-    if platform_config.get("print_state"):
+    if conf.get("print_state"):
         platform.add_observer_switches(lambda e: print(e))
 
     return platform
