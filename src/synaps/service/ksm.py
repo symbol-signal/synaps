@@ -11,8 +11,6 @@ from synaps.service.err import InvalidConfiguration
 from synaps.service.cfg import Config
 from synaps.service.rpio import RpioPlatform
 
-KINCONY_SERVER_MINI = 'KINCONY_SERVER_MINI'
-
 log = logging.getLogger(__name__)
 
 

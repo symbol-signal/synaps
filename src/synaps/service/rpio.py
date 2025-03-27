@@ -1,7 +1,8 @@
 from abc import ABC
 
-from synaps.service import InvalidConfiguration, ksm
-from synaps.service.ksm import KINCONY_SERVER_MINI
+from synaps.service.err import InvalidConfiguration
+
+KINCONY_SERVER_MINI = 'KINCONY_SERVER_MINI'
 
 _platforms = {}
 
@@ -11,6 +12,7 @@ class RpioPlatform(ABC):
 
 
 def register(platform_config):
+    from . import ksm
     platform_type = platform_config['type']
     if KINCONY_SERVER_MINI.lower() != platform_type.lower():
         raise InvalidConfiguration(f"Unknown RPIO platform `{platform_type}`, supported: {[KINCONY_SERVER_MINI]}")

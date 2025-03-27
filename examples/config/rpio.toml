@@ -1,7 +1,7 @@
 [platform]
 type = "KINCONY_SERVER_MINI"
 host = "central.local"
-print_presence = true
+print_state = true
 [[platform.switch]]
 digital_input = 1
 device_id = "desk_switch"
