@@ -13,6 +13,15 @@ from synaps.service.rpio import RpioPlatform
 
 log = logging.getLogger(__name__)
 
+KINCONY_SERVER_MINI = 'KINCONY_SERVER_MINI'
+
+_servers = {}
+
+
+def register(platform_config):
+    kincony_server_mini = create_platform(platform_config)
+    _servers[kincony_server_mini.host] = kincony_server_mini
+
 
 class DigitalInput(Enum):
     """
@@ -127,6 +136,10 @@ class KinconyServerMini(RpioPlatform):
         self.pin_factory = pin_factory
         self.switches = switches
 
+    @property
+    def host(self):
+        return self.pin_factory.host
+
     def add_observer_switches(self, callback):
         for switch in self.switches:
             switch.add_observer(callback)
@@ -139,3 +152,9 @@ class KinconyServerMini(RpioPlatform):
         for switch in self.switches:
             switch.close()
         self.pin_factory.close()
+
+
+def unregister_all():
+    for host, platform in list(_servers.items()):
+        platform.close()
+        del _servers[host]

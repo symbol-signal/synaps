@@ -19,6 +19,7 @@ from synaps.service import api, mqtt, sen0395, log, ws, sen0311, ksm
 from synaps.service.cfg import Config
 from synaps.service.err import UnknownSensorType, MissingConfigurationField, AlreadyRegistered, InvalidConfiguration, \
     ServiceAlreadyRunning, APINotStarted, ServiceNotStarted, ErrorDuringShutdown
+from synaps.service.ksm import KINCONY_SERVER_MINI
 
 logger = logging.getLogger(__name__)
 
@@ -230,12 +231,6 @@ async def register_sensor_by_type(sensor_config):
     raise UnknownSensorType(sensor_config["type"])
 
 
-async def unregister_devices():
-    await sen0395.unregister_all()
-    await sen0311.unregister_all()
-    rpio.unregister_all()
-
-
 async def init_rpio():
     try:
         config = await read_config_file(RPIO_CONFIG_FILE)
@@ -254,7 +249,13 @@ async def init_rpio():
         raise InvalidConfiguration(f"Platforms must be list the TOML configuration file, but it was {type(platforms)}")
 
     for platform_config in platforms:
-        rpio.register(Config('platform', platform_config))
+        conf = Config('platform', platform_config)
+        platform_type = conf['type']
+        if KINCONY_SERVER_MINI.lower() != platform_type.lower():
+            raise InvalidConfiguration(f"Unknown RPIO platform `{platform_type}`, supported: {[KINCONY_SERVER_MINI]}")
+        ksm.register(conf)
+        # TODO Move this log statement to ksm
+        logger.info("[rpio_registered] platform=[%s] host=[%s]", platform_type, conf['host'])
 
 
 async def start_api():
@@ -272,6 +273,12 @@ async def start_api():
         print("The service runs restricted under different user. "
               f"You can try removing `{paths.API_SOCKET}` if you are absolutely sure the service is not running.")
         raise APINotStarted
+
+
+async def unregister_devices():
+    await sen0395.unregister_all()
+    await sen0311.unregister_all()
+    ksm.unregister_all()
 
 
 async def stop_api():
