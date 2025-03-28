@@ -105,8 +105,8 @@ def create_platform(conf: Config):
 
     platform = KinconyServerMini(factory, switches)
 
-    if conf.get("print_state"):
-        platform.add_observer_switches(lambda e: print(e))
+    if conf.get("log_events"):
+        platform.add_observer_switches(lambda e: log.info(f"[ksm_event] host=[{platform.host}] event=[e]"))
 
     return platform
 

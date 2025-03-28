@@ -8,7 +8,7 @@ port = "serial:///dev/ttyAMA0"
 # optional fields
 enabled = true  # Automatically start reading the sensor upon startup (MQTT, presence print, etc.)
 autostart = true  # Automatically start the sensor scanning upon startup (unless already started)
-print_presence = true  # Print presence changes to stdout
+log_events = true  # Log presence changes to stdout/file
 [[sensor.mqtt]]
 broker = "local-rpi"
 topic = "living_room/desk/presence"
@@ -28,6 +28,6 @@ threshold_absence = 1000
 hysteresis_count = 2  # 2 consecutive measurements are required to change the presence state
 delay_presence = 0  # No delay - same as this field would be omitted
 delay_absence = 3.5  # The presence value is changed to `absence` after 3.5 seconds of continuos absence state
-print_presence = true
+log_events = true
 [[sensor.presence.ws]]
 endpoint = "rpi_main

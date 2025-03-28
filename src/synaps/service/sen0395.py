@@ -31,9 +31,9 @@ async def _init_sensor(config):
     handler = PresenceHandlerAsync()
     s.handlers.append(handler)
 
-    if config.get('print_presence'):
+    if config.get('log_events'):
         handler.observers.append(
-            lambda presence: log.debug(f"[presence_change] sensor=[{s.sensor_id}] presence=[{presence}]"))
+            lambda presence: log.info(f"[sen0395_presence_change] sensor=[{s.sensor_id}] presence=[{presence}]"))
 
     for mc in config.get_list("mqtt"):
         broker = mc['broker']

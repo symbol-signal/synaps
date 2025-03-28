@@ -51,8 +51,7 @@ def send_device_event(broker: str, topic: str, device_id: str, event_type: str, 
         "eventData": event_data,
     }
     client.publish(topic, json.dumps(payload))
-    logger.debug(
-        f"[mqtt_device_event_published] broker=[{broker}] topic=[{topic}] device=[{device_id}] event=[{event_type}]")
+    logger.debug(f"[mqtt_device_event_published] broker=[{broker}] topic=[{topic}] payload=[{payload}]")
 
 
 def on_connect(client, flags, rc, properties):

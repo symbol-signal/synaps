@@ -97,7 +97,7 @@ See the [example configuration file](examples/config/sensors.toml).
 ###### Optional fields
 - `enabled` (default: `true`): If set to `true`, the service will start reading and processing sensor data (MQTT, presence logging, etc.).
 - `autostart` (default: `true`): Specifies whether the sensor should automatically start scanning upon service startup.
-- `print_presence` (default: `true`): Determines whether presence changes should be printed to stdout and logged.
+- `log_events` (default: `true`): Determines whether presence changes should be logged (stdout/file).
 
 ###### Section [[sensor.mqtt]] (optional)
  - `broker`: The configured name of the MQTT broker to which the sensor should publish presence data.
@@ -114,7 +114,7 @@ See the [example configuration file](examples/config/sensors.toml).
 
 ###### Optional fields
 - `enabled` (default: `true`): If set to `true`, the service will start reading and processing sensor data.
-- `print_presence` (default: `true`): Determines whether presence changes should be printed to stdout and logged.
+- `log_events` (default: `true`): Determines whether presence changes should be logged (stdout/file).
 
 ###### Section [sensor.presence] (required)
 - `threshold_presence`: Distance in cm below which presence is detected.

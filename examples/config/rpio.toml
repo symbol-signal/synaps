@@ -1,7 +1,7 @@
 [platform]
 type = "KINCONY_SERVER_MINI"
 host = "central.local"
-print_state = true  # Optional
+log_events = true  # Optional
 [[platform.mqtt]]
 broker = "local"
 topic = "ksm/switches"
