@@ -2,6 +2,9 @@
 type = "KINCONY_SERVER_MINI"
 host = "central.local"
 print_state = true  # Optional
+[[platform.mqtt]]
+broker = "local"
+topic = "ksm/switches"
 [[platform.switch]]
 digital_input = 1
 device_id = "desk_switch"
