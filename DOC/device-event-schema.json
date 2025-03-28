@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Device Change Event",
+  "description": "This schema describes an event that captures a change in an IoT device state.",
+  "type": "object",
+  "properties": {
+    "deviceId": {
+      "type": "string",
+      "description": "Identifier for the device that reported the change."
+    },
+    "event": {
+      "type": "string",
+      "description": "Identifier of the event type (e.g., 'relay_state_change', 'switch_state_change', 'sensor_reading')."
+    },
+    "eventAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The ISO 8601 formatted date and time marking when the device's state changed."
+    },
+    "eventData": {
+      "type": "object",
+      "description": "Data containing details specific to the event. The content varies based on the event type."
+    }
+  },
+  "required": ["deviceId", "event", "eventAt", "eventData"]
+}

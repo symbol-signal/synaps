@@ -136,11 +136,11 @@ Presence change events of a sensor can be sent as an MQTT message to an MQTT bro
 defined in the `mqtt.toml` configuration file. See the [example configuration file](examples/config/mqtt.toml).
 
 #### Payload
-The schema of the MQTT message payload is defined in the [presence-message-schema.json](DOC/presence-message-schema.json) file.
+The schema of the MQTT message payload is defined in the [device-event-schema.json](DOC/device-event-schema.json) file.
 ##### Example
 ```json
 {
-  "sensorId": "sen0395/desk",
+  "deviceId": "sen0395/desk",
   "event": "presence_change",
   "eventAt": "2024-05-30T06:25:13.929544+00:00",
   "eventData": {
@@ -169,11 +169,11 @@ Presence change events of a sensor can be sent as a WebSocket message to a WebSo
 For this, an endpoint must first be defined in the `ws.toml` configuration file. See the [example configuration file](examples/config/ws.toml).
 
 #### Payload
-The schema of the WebSocket message payload is defined in the [presence-message-schema.json](DOC/presence-message-schema.json) file.
+The schema of the WebSocket message payload is defined in the [device-event-schema.json](DOC/device-event-schema.json) file.
 ##### Example
 ```json
 {
-  "sensorId": "sen0395/desk",
+  "deviceId": "sen0395/desk",
   "event": "presence_change",
   "eventAt": "2024-05-30T06:25:13.929544+00:00",
   "eventData": {

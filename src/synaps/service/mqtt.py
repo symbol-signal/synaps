@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timezone
-from typing import Dict
+from typing import Dict, Any
 
 from gmqtt import Client
 from rich import json
@@ -24,24 +24,35 @@ def get_broker(broker):
         raise ValueError(f"Broker {broker} not registered")
 
 
-def send_presence_changed_event(broker: str, topic: str, sensor_id: SensorId, presence: bool):
+def send_device_event(broker: str, topic: str, device_id: str, event_type: str, event_data: Dict[str, Any]):
+    """
+    Send a device event to an MQTT broker.
+
+    Args:
+        broker: The name of the broker to send the event to
+        topic: The MQTT topic to publish the event to
+        device_id: The identifier for the device
+        event_type: The type of event (e.g., 'relay_state_change', 'switch_state_change')
+        event_data: The data specific to the event
+    """
     client = _brokers.get(broker)
     if not client:
         if broker not in _missing_brokers:
-            _missing_brokers.add(broker)  # Keep record of missing brokers so we log the warning below only once
+            _missing_brokers.add(broker)
             logger.warning(f"[missing_mqtt_broker] broker=[{broker}]")
         return
 
     _missing_brokers.discard(broker)
 
     payload = {
-        "sensorId": f"{sensor_id.sensor_type.value}/{sensor_id.sensor_name}",
-        "event": "presence_change",
+        "deviceId": device_id,
+        "event": event_type,
         "eventAt": datetime.now(timezone.utc).isoformat(),
-        "eventData": {"presence": presence},
+        "eventData": event_data,
     }
     client.publish(topic, json.dumps(payload))
-    logger.debug(f"[mqtt_message_published] broker=[{broker}] message=[{payload}]")
+    logger.debug(
+        f"[mqtt_device_event_published] broker=[{broker}] topic=[{topic}] device=[{device_id}] event=[{event_type}]")
 
 
 def on_connect(client, flags, rc, properties):

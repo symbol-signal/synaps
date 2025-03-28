@@ -43,18 +43,21 @@ async def _init_sensor(config):
 
         if presence.get('print_presence'):
             handler.observers.append(
-                lambda presence: log.debug(f"[presence_change] sensor=[{s.sensor_id}] presence=[{presence}]"))
+                lambda presence_val: log.debug(f"[presence_change] sensor=[{s.sensor_id}] presence=[{presence_val}]"))
 
         for mc in presence.get_list("mqtt"):
             broker = mc['broker']
             topic = mc['topic']
             handler.observers.append(
-                lambda presence, b=broker, t=topic: mqtt.send_presence_changed_event(b, t, s.sensor_id, presence)
+                lambda presence_val, b=broker, t=topic:
+                mqtt.send_device_event(b, t, s.sensor_id, "presence_change", {"eventData": {"presence": presence_val}})
             )
 
         for wc in presence.get_list("ws"):
             endpoint = wc['endpoint']
-            handler.observers.append(lambda presence, e=endpoint: ws.send_presence_changed_event(e, s.sensor_id, presence))
+            handler.observers.append(
+                lambda presence_val, e=endpoint:
+                ws.send_device_event(e, s.sensor_id, "presence_change", {"presence": presence_val}))
 
     # TODO Handling exceptions from start methods to not prevent registration
     if config.get('enabled'):

@@ -2,12 +2,11 @@ import logging
 import asyncio
 from asyncio import Task
 from datetime import datetime, timezone
-from typing import Dict, Set, Tuple
+from typing import Dict, Set, Tuple, Any
 
 import websockets
 from rich import json
 
-from sensation.common import SensorId
 from synaps.service.err import MissingConfigurationField, AlreadyRegistered
 
 logger = logging.getLogger(__name__)
@@ -102,19 +101,19 @@ async def register(**config):
         logger.warning(f"[websocket_not_connected_during_init] wait_time=[{wait_sec}] endpoint=[{name}] uri=[{uri}]")
 
 
-async def unregister_all():
-    for name, (client, task) in list(_clients.items()):
-        if not client.closed:
-            logger.info(f"[websocket_closing_connection] endpoint=[{name}]")
-            if not await client.close():
-                task.cancel()
-                await task
-        del _clients[name]
+async def send_device_event(endpoint_name: str, device_id: str, event_type: str, event_data: Dict[str, Any]):
+    """
+    Send a device event to a WebSocket endpoint.
 
-
-async def send_presence_changed_event(endpoint_name: str, sensor_id: SensorId, presence: bool):
-    client = get_client(endpoint_name)
-    if not client:
+    Args:
+        endpoint_name: The name of the WebSocket endpoint to send the event to
+        device_id: The identifier for the device
+        event_type: The type of event (e.g., 'relay_state_change', 'switch_state_change')
+        event_data: The data specific to the event
+    """
+    try:
+        client = get_client(endpoint_name)
+    except ValueError:
         if endpoint_name not in _missing_endpoints:
             _missing_endpoints.add(endpoint_name)
             logger.warning(f"[websocket_endpoint_missing] name=[{endpoint_name}]")
@@ -123,9 +122,20 @@ async def send_presence_changed_event(endpoint_name: str, sensor_id: SensorId, p
     _missing_endpoints.discard(endpoint_name)
 
     payload = {
-        "sensorId": f"{sensor_id.sensor_type.value}/{sensor_id.sensor_name}",
-        "event": "presence_change",
+        "deviceId": device_id,
+        "event": event_type,
         "eventAt": datetime.now(timezone.utc).isoformat(),
-        "eventData": {"presence": presence},
+        "eventData": event_data,
     }
     await client.send_message(json.dumps(payload))
+    logger.debug(f"[websocket_device_event_sent] endpoint=[{endpoint_name}] device=[{device_id}] event=[{event_type}]")
+
+
+async def unregister_all():
+    for name, (client, task) in list(_clients.items()):
+        if not client.closed:
+            logger.info(f"[websocket_closing_connection] endpoint=[{name}]")
+            if not await client.close():
+                task.cancel()
+                await task
+        del _clients[name]
