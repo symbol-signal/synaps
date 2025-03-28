@@ -10,6 +10,7 @@ from synaps.common.switch import SwitchState
 from synaps.service.err import InvalidConfiguration
 from synaps.service.cfg import Config
 from synaps.service.rpio import RpioPlatform
+from synaps.service import mqtt, ws
 
 log = logging.getLogger(__name__)
 
@@ -84,6 +85,23 @@ def create_platform(conf: Config):
         button = Button(pin=di.gpio_pin, pin_factory=factory, bounce_time=switch_conf.get("bounce_time"))
         switch = KsmSwitch(button, di, dev_id)
         switches.append(switch)
+
+        for mc in (conf.get_list("mqtt") + switch_conf.get_list("mqtt")):
+            broker = mc['broker']
+            topic = mc['topic']
+            switch.add_observer(
+                lambda event, b=broker, t=topic, d=dev_id:
+                mqtt.send_device_event(b, t, d, "switch_state_change",
+                                      {"eventData": {"state": event.switch_state.name.lower()}})
+            )
+
+        for wc in (conf.get_list("ws") + switch_conf.get_list("ws")):
+            endpoint = wc['endpoint']
+            switch.add_observer(
+                lambda event, e=endpoint, d=dev_id:
+                ws.send_device_event(e, d, "switch_state_change",
+                                    {"state": event.switch_state.name.lower()})
+            )
 
     platform = KinconyServerMini(factory, switches)
 
