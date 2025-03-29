@@ -1,6 +1,6 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Optional, List
+from typing import Optional
 
 
 class SwitchState(Enum):
