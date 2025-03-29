@@ -1,18 +1,15 @@
 import logging
-import time
-from dataclasses import dataclass
 from enum import Enum
-from typing import List, Union, Optional
+from typing import List, Union
 
 from gpiozero import Button, OutputDevice
 from gpiozero.pins.pigpio import PiGPIOFactory
 
-from synaps.common.relay import RelayState
 from synaps.common.switch import SwitchState
-from synaps.service.err import InvalidConfiguration
-from synaps.service.cfg import Config
-from synaps.service.rpio import RpioPlatform
 from synaps.service import mqtt, ws
+from synaps.service.cfg import Config
+from synaps.service.err import InvalidConfiguration
+from synaps.service.rpio import RpioPlatform, InputSwitch, OutputRelay, link_switch_to_relay
 
 log = logging.getLogger(__name__)
 
@@ -76,43 +73,6 @@ class DigitalInput(Enum):
             f"platform.switch.digital_input value `{input_id}` is not between 1-8")
 
 
-@dataclass
-class KsmSwitchEvent:
-    digital_input: DigitalInput
-    device_id: str
-    switch_state: SwitchState
-
-
-class KsmSwitch:
-
-    def __init__(self, digital_input: DigitalInput, device_id, button: Button):
-        self.button = button
-        self.digital_input = digital_input
-        self.device_id = device_id
-        self.observers = []
-        self.button.when_pressed = self._on_pressed
-        self.button.when_released = self._on_released
-
-    def add_observer(self, callback):
-        self.observers.append(callback)
-
-    def remove_observer(self, callback):
-        self.observers.remove(callback)
-
-    def _on_pressed(self):
-        event = KsmSwitchEvent(self.digital_input, self.device_id, SwitchState.PRESSED)
-        for observer in self.observers:
-            observer(event)
-
-    def _on_released(self):
-        event = KsmSwitchEvent(self.digital_input, self.device_id, SwitchState.RELEASED)
-        for observer in self.observers:
-            observer(event)
-
-    def close(self):
-        self.button.close()
-
-
 class RelayChannel(Enum):
     """
     Enumeration of relay outputs on the Kincony Server-Mini.
@@ -160,126 +120,18 @@ class RelayChannel(Enum):
         raise InvalidConfiguration(f"platform.relay.relay_channel value `{channel_number}` is not between 1-8")
 
 
-@dataclass
-class KsmRelayEvent:
-    """
-    Event class for relay state changes.
-    The state now uses the RelayState enum for clarity.
-    """
-    channel: RelayChannel
-    device_id: str
-    state: RelayState
-
-
-class KsmRelay:
-    """
-    Represents a relay on the Kincony Server-Mini.
-    Now uses RelayState enum for state management and includes a
-    cooldown to prevent rapid toggling.
-    """
-
-    def __init__(self, channel: RelayChannel, device_id: str, output_device: OutputDevice,
-                 initial_state: Optional[bool] = None, toggle_cooldown: float = 0.5):
-        self.channel = channel
-        self.device_id = device_id
-        self.output_device = output_device
-        self.observers = []
-        self._toggle_cooldown = toggle_cooldown
-        self._last_toggle_time = 0.0
-
-        if initial_state is not None:
-            self.set_state(initial_state)
-
-    def add_observer(self, callback):
-        """Add an observer callback that will be called when the relay state changes."""
-        self.observers.append(callback)
-
-    def remove_observer(self, callback):
-        """Remove an observer callback."""
-        self.observers.remove(callback)
-
-    def __call__(self, e: KsmSwitchEvent):
-        if e.switch_state == SwitchState.PRESSED:
-            self.toggle()
-
-    def set_state(self, state: Union[bool, RelayState]):
-        """
-        Set the relay state.
-        Accepts either a boolean or a RelayState enum.
-        """
-        # Convert boolean to RelayState if needed.
-        if isinstance(state, bool):
-            state = RelayState.ON if state else RelayState.OFF
-
-        if state == RelayState.ON:
-            self.output_device.on()
-        else:
-            self.output_device.off()
-
-        # Notify observers with the RelayState enum.
-        self._notify_observers(state)
-
-    def turn_on(self):
-        """Turn on the relay."""
-        self.set_state(RelayState.ON)
-
-    def turn_off(self):
-        """Turn off the relay."""
-        self.set_state(RelayState.OFF)
-
-    def toggle(self):
-        """Toggle the relay state, but only if the cooldown has elapsed."""
-        current_time = time.time()
-        if current_time - self._last_toggle_time < self._toggle_cooldown:
-            log.warning(f"[relay_toggle_ignored] relay=[{self.channel}] reason=[toggle_in_cooldown]")
-            return
-
-        self._last_toggle_time = current_time
-        self.output_device.toggle()
-        # Determine the new state based on output device value.
-        new_state = RelayState.ON if self.output_device.value == 1 else RelayState.OFF
-        self._notify_observers(new_state)
-
-    def get_state(self) -> RelayState:
-        """Get the current state of the relay as a RelayState enum."""
-        return RelayState.ON if self.output_device.value == 1 else RelayState.OFF
-
-    def _notify_observers(self, state: RelayState):
-        """Notify all observers about the relay state change."""
-        event = KsmRelayEvent(self.channel, self.device_id, state)
-        for observer in self.observers:
-            observer(event)
-
-    def close(self):
-        """Clean up resources."""
-        self.output_device.close()
-
-
 class KinconyServerMini(RpioPlatform):
 
-    def __init__(self, pin_factory, switches: List[KsmSwitch], relays: List[KsmRelay]):
+    def __init__(self, pin_factory, switches: List[InputSwitch], relays: List[OutputRelay]):
+        super().__init__(switches, relays)
         self.pin_factory = pin_factory
-        self.switches = switches
-        self.relays = relays
 
     @property
     def host(self):
         return self.pin_factory.host
 
-    def add_observer_switches(self, callback):
-        for switch in self.switches:
-            switch.add_observer(callback)
-
-    def remove_observer_switches(self, callback):
-        for switch in self.switches:
-            switch.remove_observer(callback)
-
     def close(self):
-        for switch in self.switches:
-            switch.close()
-        for relay in self.relays:
-            relay.close()
-
+        super().close()
         self.pin_factory.close()
 
 
@@ -298,7 +150,7 @@ def create_platform(conf: Config):
     return platform
 
 
-def create_relays(factory: PiGPIOFactory, platform_config: Config) -> List[KsmRelay]:
+def create_relays(factory: PiGPIOFactory, platform_config: Config) -> List[OutputRelay]:
     """
     Create relay objects based on configuration and add them to the platform
 
@@ -320,7 +172,7 @@ def create_relays(factory: PiGPIOFactory, platform_config: Config) -> List[KsmRe
             active_high=relay_conf.get("active_high", True),
             initial_value=relay_conf.get("initial_state", False)
         )
-        relay = KsmRelay(relay_ch, device_id, output_device, initial_state=relay_conf.get("initial_state"))
+        relay = OutputRelay(device_id, output_device, initial_state=relay_conf.get("initial_state"))
         relays.append(relay)
 
         for mc in (platform_config.get_list("mqtt") + relay_conf.get_list("mqtt")):
@@ -343,16 +195,19 @@ def create_relays(factory: PiGPIOFactory, platform_config: Config) -> List[KsmRe
     return relays
 
 
-def create_switches(factory, conf, relays: List[KsmRelay]):
-    channel_to_relay = {r.channel: r for r in relays}
-
+def create_switches(factory, conf, relays: List[OutputRelay]):
+    device_to_relay = {r.device_id: r for r in relays}
     switches = []
-    bounce_time = conf.get("switch_bounce_time")
+    bounce_time = None
+
+    if global_switch_conf := conf.get("switches", None):
+        bounce_time = global_switch_conf.get("bounce_time", None)
+
     for switch_conf in conf.get_list("switch"):
         di = DigitalInput.get_by_id(switch_conf["digital_input"])
         dev_id = switch_conf["device_id"]
         button = Button(pin=di.gpio_pin, pin_factory=factory, bounce_time=bounce_time or switch_conf.get("bounce_time"))
-        switch = KsmSwitch(di, dev_id, button)
+        switch = InputSwitch(dev_id, button)
         switches.append(switch)
 
         for mc in (conf.get_list("mqtt") + switch_conf.get_list("mqtt")):
@@ -360,25 +215,24 @@ def create_switches(factory, conf, relays: List[KsmRelay]):
             topic = mc['topic']
             switch.add_observer(
                 lambda event, b=broker, t=topic, d=dev_id:
-                mqtt.send_device_event(b, t, d, "switch_state_change",
-                                       {"eventData": {"state": event.switch_state.name.lower()}})
+                mqtt.send_device_event(b, t, d, "switch_state_change", {"eventData": event.serialize()})
             )
 
         for wc in (conf.get_list("ws") + switch_conf.get_list("ws")):
             endpoint = wc['endpoint']
             switch.add_observer(
                 lambda event, e=endpoint, d=dev_id:
-                ws.send_device_event(e, d, "switch_state_change",
-                                     {"state": event.switch_state.name.lower()})
+                ws.send_device_event(e, d, "switch_state_change", {"eventData": event.serialize()})
             )
 
-        for toggle_relay in switch_conf.get_list("toggle_relays"):
-            relay_channel = RelayChannel.get_by_channel_number(toggle_relay)
-            relay = channel_to_relay.get(relay_channel)
-            if relay is None:
-                raise InvalidConfiguration(
-                    f"Invalid relay wiring of switch `{di}`: relay {relay_channel} is not configured")
-            switch.add_observer(relay)
+        for rlink_conf in switch_conf.get_list("relay_link"):
+            toggle_on_str = rlink_conf.get("toggle_on", SwitchState.RELEASED.name).upper()
+            toggle_state = SwitchState[toggle_on_str]
+            matching_relay = device_to_relay[rlink_conf["device"]]
+            if not matching_relay:
+                raise InvalidConfiguration(f"Linked relay devices not found: `{rlink_conf["device"]}`")
+
+            link_switch_to_relay(switch, [matching_relay], toggle_state)
 
     return switches
 

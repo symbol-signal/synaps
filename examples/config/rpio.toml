@@ -2,15 +2,22 @@
 type = "KINCONY_SERVER_MINI"
 host = "central.local"
 log_events = true  # Optional
-switch_bounce_time = 0.05  # Optional - in seconds
-[[platform.mqtt]]
+
+[[platform.mqtt]]  # Optional
 broker = "local"
 topic = "ksm/switches"
+
+[platform.switches]  # Optional
+bounce_time = 0.05
+
 [[platform.switch]]
 digital_input = 1
 device_id = "desk_switch"
 bounce_time = 0.1  # Optional - in seconds
-toggle_relays = [1]  # Optional - controls relay ch1
+[[platform.switch.relay_link]]
+device = "desk_lights"
+toggle_on = "pressed"  # Optional - default released
+
 [[platform.relay]]
-relay_channel = 1
+channel = 1
 device_id = "desk_lights"
