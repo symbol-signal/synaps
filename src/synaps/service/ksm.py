@@ -347,11 +347,11 @@ def create_switches(factory, conf, relays: List[KsmRelay]):
     channel_to_relay = {r.channel: r for r in relays}
 
     switches = []
-
+    bounce_time = conf.get("switch_bounce_time")
     for switch_conf in conf.get_list("switch"):
         di = DigitalInput.get_by_id(switch_conf["digital_input"])
         dev_id = switch_conf["device_id"]
-        button = Button(pin=di.gpio_pin, pin_factory=factory, bounce_time=switch_conf.get("bounce_time"))
+        button = Button(pin=di.gpio_pin, pin_factory=factory, bounce_time=bounce_time or switch_conf.get("bounce_time"))
         switch = KsmSwitch(di, dev_id, button)
         switches.append(switch)
 
@@ -372,8 +372,8 @@ def create_switches(factory, conf, relays: List[KsmRelay]):
                                      {"state": event.switch_state.name.lower()})
             )
 
-        for rc in switch_conf.get_list("relays"):
-            relay_channel = RelayChannel.get_by_channel_number(rc)
+        for toggle_relay in switch_conf.get_list("toggle_relays"):
+            relay_channel = RelayChannel.get_by_channel_number(toggle_relay)
             relay = channel_to_relay.get(relay_channel)
             if relay is None:
                 raise InvalidConfiguration(
