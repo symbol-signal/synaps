@@ -234,7 +234,7 @@ def create_switches(factory, conf, relays: List[OutputRelay]):
                 raise InvalidConfiguration(f"Invalid state value `{toggle_on_str}`, valid: `{valid_states}`")
             matching_relay = device_to_relay[rlink_conf["device"]]
             if not matching_relay:
-                raise InvalidConfiguration(f"Linked relay devices not found: `{rlink_conf["device"]}`")
+                raise InvalidConfiguration(f'Linked relay devices not found: `{rlink_conf["device"]}`')
 
             link_switch_to_relay(switch, [matching_relay], toggle_state)
 
