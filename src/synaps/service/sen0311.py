@@ -50,7 +50,7 @@ async def _init_sensor(config):
             topic = mc['topic']
             handler.observers.append(
                 lambda presence_val, b=broker, t=topic:
-                mqtt.send_device_event(b, t, s.sensor_id, "presence_change", {"eventData": {"presence": presence_val}})
+                mqtt.send_device_event(b, t, s.sensor_id, "presence_change", {"presence": presence_val})
             )
 
         for wc in presence.get_list("ws"):
