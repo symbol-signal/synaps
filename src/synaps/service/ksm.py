@@ -180,16 +180,14 @@ def create_relays(factory: PiGPIOFactory, platform_config: Config) -> List[Outpu
             topic = mc['topic']
             relay.add_observer(
                 lambda event, b=broker, t=topic, d=device_id:
-                mqtt.send_device_event(b, t, d, "relay_state_change",
-                                       {"eventData": {"state": event.state.name.lower()}})
+                mqtt.send_device_event(b, t, d, "relay_state_change", {"state": event.state.name.lower()})
             )
 
         for wc in (platform_config.get_list("ws") + relay_conf.get_list("ws")):
             endpoint = wc['endpoint']
             relay.add_observer(
                 lambda event, e=endpoint, d=device_id:
-                ws.send_device_event(e, d, "relay_state_change",
-                                     {"state": event.state.name.lower()})
+                ws.send_device_event(e, d, "relay_state_change", {"state": event.state.name.lower()})
             )
 
     return relays
@@ -215,14 +213,14 @@ def create_switches(factory, conf, relays: List[OutputRelay]):
             topic = mc['topic']
             switch.add_observer(
                 lambda event, b=broker, t=topic, d=dev_id:
-                mqtt.send_device_event(b, t, d, "switch_state_change", {"eventData": event.serialize()})
+                mqtt.send_device_event(b, t, d, "switch_state_change", event.serialize())
             )
 
         for wc in (conf.get_list("ws") + switch_conf.get_list("ws")):
             endpoint = wc['endpoint']
             switch.add_observer(
                 lambda event, e=endpoint, d=dev_id:
-                ws.send_device_event(e, d, "switch_state_change", {"eventData": event.serialize()})
+                ws.send_device_event(e, d, "switch_state_change", event.serialize())
             )
 
         for rlink_conf in switch_conf.get_list("relay_link"):

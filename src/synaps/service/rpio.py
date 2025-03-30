@@ -1,7 +1,8 @@
+import asyncio
 import logging
 import time
 from abc import ABC
-from typing import Optional, Union, List, Iterable
+from typing import Optional, Union, List, Iterable, Awaitable
 
 from gpiozero import Button, OutputDevice
 
@@ -17,6 +18,7 @@ class InputSwitch:
         self.button = button
         self.device_id = device_id
         self.observers = []
+        self.event_loop = asyncio.get_running_loop()
         self.button.when_pressed = self._on_pressed
         self.button.when_released = self._on_released
 
@@ -29,12 +31,16 @@ class InputSwitch:
     def _on_pressed(self):
         event = SwitchEvent(self.device_id, SwitchState.PRESSED)
         for observer in self.observers:
-            observer(event)
+            result = observer(event)
+            if isinstance(result, Awaitable):
+                asyncio.run_coroutine_threadsafe(result, self.event_loop)
 
     def _on_released(self):
         event = SwitchEvent(self.device_id, SwitchState.RELEASED)
         for observer in self.observers:
-            observer(event)
+            result = observer(event)
+            if isinstance(result, Awaitable):
+                asyncio.run_coroutine_threadsafe(result, self.event_loop)
 
     def close(self):
         self.button.close()
@@ -52,6 +58,7 @@ class OutputRelay:
         self.device_id = device_id
         self.output_device = output_device
         self.observers = []
+        self.event_loop = asyncio.get_running_loop()
         self._toggle_cooldown = toggle_cooldown
         self._last_toggle_time = 0.0
 
@@ -116,7 +123,9 @@ class OutputRelay:
         """Notify all observers about the relay state change."""
         event = RelayEvent(self.device_id, state)
         for observer in self.observers:
-            observer(event)
+            result = observer(event)
+            if isinstance(result, Awaitable):
+                asyncio.run_coroutine_threadsafe(result, self.event_loop)
 
     def close(self):
         """Clean up resources."""
