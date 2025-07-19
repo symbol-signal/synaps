@@ -19,6 +19,9 @@ _servers = {}
 
 
 def register(platform_config):
+    """
+    Impl note: Make sure this call is never blocked as it is called from async event thread
+    """
     kincony_server_mini = create_platform(platform_config)
     _servers[kincony_server_mini.host] = kincony_server_mini
 

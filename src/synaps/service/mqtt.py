@@ -5,7 +5,6 @@ from typing import Dict, Any
 from gmqtt import Client
 from rich import json
 
-from sensation.common import SensorId
 from synaps.service.err import MissingConfigurationField, AlreadyRegistered
 
 logger = logging.getLogger(__name__)
@@ -74,6 +73,10 @@ async def register(**config):
 
     name = config['name']
     host = config['host']
+
+    if not config.get('enabled', True):
+        logger.info("mqtt_broker_disabled name=[%s] host=[%s]", name, host)
+        return
 
     if _brokers.get(name):
         raise AlreadyRegistered

@@ -252,7 +252,8 @@ async def init_rpio():
         conf = Config('platform', platform_config)
         platform_type = conf['type']
         if not conf.get('enabled', True):
-            logger.debug("rpio_disabled platform=[%s] host=[%s]", platform_type, conf['host'])
+            logger.info("rpio_disabled platform=[%s] host=[%s]", platform_type, conf['host'])
+            continue
         if KINCONY_SERVER_MINI.lower() != platform_type.lower():
             raise InvalidConfiguration(f"Unknown RPIO platform `{platform_type}`, supported: {[KINCONY_SERVER_MINI]}")
         ksm.register(conf)
