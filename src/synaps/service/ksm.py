@@ -214,10 +214,16 @@ def create_switches(factory, conf, relays: List[OutputRelay]):
         for mc in (conf.get_list("mqtt") + switch_conf.get_list("mqtt")):
             broker = mc['broker']
             topic = mc['topic']
-            switch.add_observer(
-                lambda event, b=broker, t=topic, d=dev_id:
-                mqtt.send_device_event(b, t, d, "switch_state_change", event.serialize())
-            )
+            if 'simple' == mc.get('payload'):
+                switch.add_observer(
+                    lambda event, b=broker, t=topic:
+                    mqtt.send_device_payload(b, t, event.as_simple_value())
+                )
+            else:
+                switch.add_observer(
+                    lambda event, b=broker, t=topic, d=dev_id:
+                    mqtt.send_device_event(b, t, d, "switch_state_change", event.serialize())
+                )
 
         for wc in (conf.get_list("ws") + switch_conf.get_list("ws")):
             endpoint = wc['endpoint']

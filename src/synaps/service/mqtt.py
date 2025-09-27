@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from typing import Dict, Any
 
 from gmqtt import Client
-from rich import json
 
 from synaps.service.err import MissingConfigurationField, AlreadyRegistered
 
@@ -23,6 +22,27 @@ def get_broker(broker):
         raise ValueError(f"Broker {broker} not registered")
 
 
+def send_device_payload(broker: str, topic: str, payload: Any):
+    """
+    Send a device event to an MQTT broker.
+
+    Args:
+        broker: The name of the broker to send the event to
+        topic: The MQTT topic to publish the event to
+        payload: Payload to be sent
+    """
+    client = _brokers.get(broker)
+    if not client:
+        if broker not in _missing_brokers:
+            _missing_brokers.add(broker)
+            logger.warning(f"[missing_mqtt_broker] broker=[{broker}]")
+        return
+
+    _missing_brokers.discard(broker)
+    client.publish(topic, payload)
+    logger.debug(f"[mqtt_message_published] broker=[{broker}] topic=[{topic}] payload=[{payload}]")
+
+
 def send_device_event(broker: str, topic: str, device_id: str, event_type: str, event_data: Dict[str, Any]):
     """
     Send a device event to an MQTT broker.
@@ -34,23 +54,13 @@ def send_device_event(broker: str, topic: str, device_id: str, event_type: str, 
         event_type: The type of event (e.g., 'relay_state_change', 'switch_state_change')
         event_data: The data specific to the event
     """
-    client = _brokers.get(broker)
-    if not client:
-        if broker not in _missing_brokers:
-            _missing_brokers.add(broker)
-            logger.warning(f"[missing_mqtt_broker] broker=[{broker}]")
-        return
-
-    _missing_brokers.discard(broker)
-
     payload = {
         "deviceId": device_id,
         "event": event_type,
         "eventAt": datetime.now(timezone.utc).isoformat(),
         "eventData": event_data,
     }
-    client.publish(topic, json.dumps(payload))
-    logger.debug(f"[mqtt_device_event_published] broker=[{broker}] topic=[{topic}] payload=[{payload}]")
+    send_device_payload(broker, topic, payload)
 
 
 def on_connect(client, flags, rc, properties):

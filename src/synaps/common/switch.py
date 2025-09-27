@@ -20,3 +20,11 @@ class SwitchEvent:
             "switch_state": self.switch_state.name.lower(),
             "switch_id": self.switch_id,
         }
+
+    def as_simple_value(self):
+        if self.switch_state == SwitchState.PRESSED:
+            return 'ON'
+        elif self.switch_state == SwitchState.RELEASED:
+            return 'OFF'
+        else:
+            raise ValueError(f"Unknown switch state {self.switch_state}")
