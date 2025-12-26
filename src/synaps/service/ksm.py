@@ -181,10 +181,16 @@ def create_relays(factory: PiGPIOFactory, platform_config: Config) -> List[Outpu
         for mc in (platform_config.get_list("mqtt") + relay_conf.get_list("mqtt")):
             broker = mc['broker']
             topic = mc['topic']
-            relay.add_observer(
-                lambda event, b=broker, t=topic, d=device_id:
-                mqtt.send_device_event(b, t, d, "relay_state_change", {"state": event.state.name.lower()})
-            )
+            if 'simple' == mc.get('payload'):
+                relay.add_observer(
+                    lambda event, b=broker, t=topic:
+                    mqtt.send_device_payload(b, t, event.as_simple_value())
+                )
+            else:
+                relay.add_observer(
+                    lambda event, b=broker, t=topic, d=device_id:
+                    mqtt.send_device_event(b, t, d, "relay_state_change", {"state": event.state.name.lower()})
+                )
 
         for wc in (platform_config.get_list("ws") + relay_conf.get_list("ws")):
             endpoint = wc['endpoint']
