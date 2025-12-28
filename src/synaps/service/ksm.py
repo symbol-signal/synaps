@@ -180,17 +180,36 @@ def create_relays(factory: PiGPIOFactory, platform_config: Config) -> List[Outpu
 
         for mc in (platform_config.get_list("mqtt") + relay_conf.get_list("mqtt")):
             broker = mc['broker']
-            topic = mc['topic']
-            if 'simple' == mc.get('payload'):
-                relay.add_observer(
-                    lambda event, b=broker, t=topic:
-                    mqtt.send_device_payload(b, t, event.as_simple_value())
-                )
-            else:
-                relay.add_observer(
-                    lambda event, b=broker, t=topic, d=device_id:
-                    mqtt.send_device_event(b, t, d, "relay_state_change", {"state": event.state.name.lower()})
-                )
+            state_topic = mc.get('state_topic') or mc.get('topic')
+            command_topic = mc.get('command_topic')
+
+            if state_topic:
+                if 'simple' == mc.get('payload'):
+                    relay.add_observer(
+                        lambda event, b=broker, t=state_topic:
+                        mqtt.send_device_payload(b, t, event.as_simple_value())
+                    )
+                else:
+                    relay.add_observer(
+                        lambda event, b=broker, t=state_topic, d=device_id:
+                        mqtt.send_device_event(b, t, d, "relay_state_change", {"state": event.state.name.lower()})
+                    )
+
+            if command_topic:
+                def make_handler(r):
+                    def handler(topic, payload):
+                        cmd = payload.upper().strip()
+                        if cmd == 'ON':
+                            r.turn_on()
+                        elif cmd == 'OFF':
+                            r.turn_off()
+                        elif cmd == 'TOGGLE':
+                            r.toggle()
+                        else:
+                            log.warning(f"[mqtt_relay_unknown_command] topic=[{topic}] payload=[{payload}]")
+                    return handler
+
+                mqtt.subscribe(broker, command_topic, make_handler(relay))
 
         for wc in (platform_config.get_list("ws") + relay_conf.get_list("ws")):
             endpoint = wc['endpoint']
